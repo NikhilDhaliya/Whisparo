@@ -1,4 +1,5 @@
 import Post from "../models/post.js";
+import Comment from "../models/comment.js";
 
 export const createPost = async (req, res) => {
   try {
@@ -28,21 +29,74 @@ export const createPost = async (req, res) => {
 export const getAllPosts = async (req, res) => {
   try {
     const userEmail = req.user?.email; // Optional chaining since this endpoint might be public
-    const posts = await Post.find().sort({ createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const filter = req.query.filter || 'latest';
     
-    // Transform posts to include vote information
-    const postsWithVotes = posts.map(post => ({
-      ...post.toObject(),
-      votes: {
-        score: post.votes.score,
-        userVote: userEmail ? (
-          post.votes.upvotes.includes(userEmail) ? 'upvote' : 
-          post.votes.downvotes.includes(userEmail) ? 'downvote' : null
-        ) : null
+    const skip = (page - 1) * limit;
+    
+    let sortOptions = {};
+    let filterCondition = {}; // Add filter condition object
+
+    if (filter === 'trending') {
+      sortOptions = { 'votes.score': -1, createdAt: -1 };
+      filterCondition = { 'votes.upvotes.length': { $gt: 5 } }; // Filter for likes > 5
+    } else {
+      // 'latest' is default
+      sortOptions = { createdAt: -1 };
+    }
+    
+    // Apply both filter condition and sort options to the find query
+    const posts = await Post.find(filterCondition)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit);
+    
+    // Get total count for pagination (apply filter condition here too)
+    const total = await Post.countDocuments(filterCondition);
+    
+    // For each post, get the comment count
+    const postsWithCommentCounts = await Promise.all(posts.map(async post => {
+      // Count comments for this post
+      const commentsCount = await Comment.countDocuments({ postId: post._id });
+      // Get username from cookie if available
+      const usernameCookie = req.cookies.username;
+      let username = 'Anonymous';
+      if (usernameCookie) {
+        try {
+          const parsed = JSON.parse(usernameCookie);
+          const age = Date.now() - parsed.timestamp;
+          if (age < 30 * 60 * 1000) {
+            username = parsed.username;
+          }
+        } catch (e) {
+          console.error('Error parsing username cookie:', e);
+        }
       }
+      return {
+        id: post._id,
+        title: post.title,
+        content: post.body,
+        category: post.category,
+        authorEmail: post.authorEmail,
+        createdAt: post.createdAt,
+        newUsername: username,
+        likes: post.votes.upvotes.length,
+        dislikes: post.votes.downvotes.length,
+        score: post.votes.score,
+        userVote: req.user?.email ? (
+          post.votes.upvotes.includes(req.user.email) ? 'upvote' : 
+          post.votes.downvotes.includes(req.user.email) ? 'downvote' : null
+        ) : null,
+        commentsCount
+      };
     }));
 
-    res.status(200).json(postsWithVotes);
+    res.status(200).json({
+      posts: postsWithCommentCounts,
+      hasMore: skip + posts.length < total,
+      total
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

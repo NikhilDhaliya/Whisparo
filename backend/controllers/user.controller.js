@@ -113,3 +113,23 @@ export const logoutUser = async (req, res) => {
       res.status(500).json({ message: error.message });
     }
   };
+
+export const checkAuth = async (req, res) => {
+  try {
+    const user = req.user; // From auth middleware
+    if (!user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    res.status(200).json({
+      user: {
+        _id: user._id,
+        email: user.email,
+        username: generateFriendlyUsername() // Generate a new username for each check
+      }
+    });
+  } catch (error) {
+    console.error('Auth check error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -12,8 +12,14 @@ import { setUsernameMiddleware } from "../middlewares/setUsername.js";
 
 const router = express.Router();
 
-router.get("/", getAllPosts);
-router.get("/:id", getPostById);
+// Log incoming requests to post routes
+router.use((req, res, next) => {
+  console.log(`[Post Routes] Incoming ${req.method} request to ${req.originalUrl}`);
+  next();
+});
+
+router.get("/", setUsernameMiddleware, getAllPosts);
+router.get("/:id", setUsernameMiddleware, getPostById);
 
 // Vote routes
 router.post("/:id/vote", authMiddleware, votePost);
