@@ -3,15 +3,14 @@ import Comment from "../models/comment.js";
 
 export const createPost = async (req, res) => {
   try {
-    const { title, body, category } = req.body;
+    const {body, category } = req.body;
     const authorEmail = req.user.email; // from authMiddleware
 
-    if (!title || !body || !category) {
+    if (!body || !category) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     const newPost = await Post.create({
-      title,
       body,
       category,
       authorEmail
@@ -75,7 +74,6 @@ export const getAllPosts = async (req, res) => {
       }
       return {
         id: post._id,
-        title: post.title,
         content: post.body,
         category: post.category,
         authorEmail: post.authorEmail,
@@ -131,7 +129,7 @@ export const getPostById = async (req, res) => {
 export const updatePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, body, category } = req.body;
+    const {body, category } = req.body;
     const userEmail = req.user.email;
 
     const post = await Post.findById(id);
@@ -141,7 +139,6 @@ export const updatePost = async (req, res) => {
       return res.status(403).json({ message: "Not authorized to edit this post" });
     }
 
-    post.title = title || post.title;
     post.body = body || post.body;
     post.category = category || post.category;
 

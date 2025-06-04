@@ -12,12 +12,6 @@ import { setUsernameMiddleware } from "../middlewares/setUsername.js";
 
 const router = express.Router();
 
-// Log incoming requests to post routes
-router.use((req, res, next) => {
-  console.log(`[Post Routes] Incoming ${req.method} request to ${req.originalUrl}`);
-  next();
-});
-
 router.get("/", setUsernameMiddleware, getAllPosts);
 router.get("/:id", setUsernameMiddleware, getPostById);
 
