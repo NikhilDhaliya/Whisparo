@@ -1,0 +1,45 @@
+import { v4 as uuidv4 } from 'uuid';
+
+const adjectives = ['cool', 'fast', 'brave', 'smart', 'mysterious'];
+const animals = ['tiger', 'panda', 'falcon', 'otter', 'wolf'];
+
+const generateFriendlyUsername = () => {
+  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const animal = animals[Math.floor(Math.random() * animals.length)];
+  const id = uuidv4().split('-')[0];
+  return `${adjective}_${animal}_${id}`;
+};
+
+export const setUsernameMiddleware = (req, res, next) => {
+  const usernameCookie = req.cookies.username;
+
+  if (usernameCookie) {
+    const parsed = JSON.parse(usernameCookie);
+    const age = Date.now() - parsed.timestamp;
+
+    if (age < 30 * 60 * 1000) {
+      req.sessionUsername = parsed.username;
+      return next(); // Username still valid
+    }
+  }
+
+  // Generate new username and store with timestamp
+  const newUsername = generateFriendlyUsername();
+  const payload = {
+    username: newUsername,
+    timestamp: Date.now()
+  };
+
+  res.cookie('username', JSON.stringify(payload), {
+    httpOnly: true,
+    maxAge: 30 * 60 * 1000, // 30 minutes
+    secure: false,
+    sameSite: 'Lax'
+  });
+
+  req.sessionUsername = newUsername;
+  next();
+};
+
+
+//to be applied to the protected routes like post, comment etc,
