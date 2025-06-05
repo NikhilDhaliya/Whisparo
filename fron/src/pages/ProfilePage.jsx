@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -7,6 +8,7 @@ import toast from 'react-hot-toast';
 import CommentList from '../components/comments/CommentList';
 import { useCache } from '../context/CacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import PostCard from '../components/posts/PostCard';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -40,7 +42,9 @@ const ProfilePage = () => {
     }
   };
 
-  const fetchUserPosts = async (forceRefresh = false) => {
+  const fetchUserPosts = async (userData, forceRefresh = false) => {
+    if (!userData?.email) return;
+
     try {
       // Check cache first
       const cachedData = getCacheData('userPosts');
@@ -49,7 +53,7 @@ const ProfilePage = () => {
         return;
       }
 
-      const response = await axios.get(`/api/posts?authorEmail=${encodeURIComponent(user.email)}`);
+      const response = await axios.get(`/api/posts?authorEmail=${encodeURIComponent(userData.email)}`);
       setPosts(response.data.posts);
       setCacheData('userPosts', response.data.posts);
     } catch (error) {
@@ -62,11 +66,17 @@ const ProfilePage = () => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const userData = await fetchUserData();
-      if (userData) {
-        await fetchUserPosts();
+      try {
+        const userData = await fetchUserData();
+        if (userData) {
+          await fetchUserPosts(userData);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setError('Failed to load profile data');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     loadData();
   }, []); // Only run on mount
@@ -131,6 +141,28 @@ const ProfilePage = () => {
     }
   };
 
+  const handleVote = async (postId, voteType) => {
+    try {
+      const response = await axios.post(`/api/posts/${postId}/vote`, { voteType });
+      setPosts(posts.map(post => 
+        post._id === postId ? { ...post, ...response.data } : post
+      ));
+      
+      // Update cache
+      setCacheData('userPosts', posts.map(post => 
+        post._id === postId ? { ...post, ...response.data } : post
+      ));
+    } catch (error) {
+      console.error('Error voting:', error);
+      toast.error('Failed to vote');
+    }
+  };
+
+  const handleComment = (postId) => {
+    // This is handled by the PostCard component
+    console.log('Comment clicked for post:', postId);
+  };
+
   const toggleComments = (postId) => {
     setShowComments(showComments === postId ? null : postId);
   };
@@ -162,9 +194,10 @@ const ProfilePage = () => {
             <h1 className="text-xl font-semibold text-gray-900">Profile</h1>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+              disabled={isLoggingOut}
+              className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Logout
+              {isLoggingOut ? <FaSpinner className="animate-spin" /> : 'Logout'}
             </button>
           </div>
         </div>
@@ -179,91 +212,12 @@ const ProfilePage = () => {
 
         <div className="space-y-4">
           {posts.map(post => (
-            <motion.div
+            <PostCard
               key={post._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-2xl shadow-sm p-6"
-            >
-              {editingPost?._id === post._id ? (
-                <div className="space-y-4">
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    rows="3"
-                  />
-                  <div className="flex justify-end space-x-2">
-                    <button
-                      onClick={() => setEditingPost(null)}
-                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleUpdate}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <p className="text-gray-900 mb-4">{post.body}</p>
-                  {post.image?.url && (
-                    <div className="mb-4">
-                      <img
-                        src={post.image.url}
-                        alt="Post attachment"
-                        className="max-h-96 w-full object-contain rounded-xl"
-                      />
-                    </div>
-                  )}
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-4">
-                      <span className="text-gray-500 text-sm">
-                        {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-                      </span>
-                      <button
-                        onClick={() => toggleComments(post._id)}
-                        className="text-blue-500 hover:text-blue-600"
-                      >
-                        {post.comments?.length || 0} Comments
-                      </button>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(post)}
-                        className="text-gray-600 hover:text-gray-900"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(post._id)}
-                        className="text-red-500 hover:text-red-600"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Comments Section */}
-              <AnimatePresence>
-                {showComments === post._id && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-4 pt-4 border-t border-gray-100"
-                  >
-                    <CommentList postId={post._id} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+              post={post}
+              onVote={handleVote}
+              onComment={handleComment}
+            />
           ))}
         </div>
       </div>
