@@ -8,8 +8,10 @@ import axios from 'axios'
 import CommentList from '../comments/CommentList'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from '../../context/AuthContext'
 
 const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onCommentClick }) => {
+  const { user: authUser } = useAuth();
   const {
     content,
     body,
@@ -155,7 +157,9 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
           <div className="flex items-center space-x-3">
             <Avatar email={authorEmail} />
             <div>
-              <span className="font-medium text-gray-900">{newUsername || authorUsername || 'Anonymous'}</span>
+              <span className="font-medium text-gray-900">
+                {authorEmail === authUser?.email ? authUser?.username : (newUsername || authorUsername || 'Anonymous')}
+              </span>
               <span className="block text-xs text-gray-500">
                 {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
               </span>
