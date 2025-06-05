@@ -25,20 +25,21 @@ const ProfilePage = () => {
   const [isDeletingComment, setIsDeletingComment] = useState(false);
   const [expandedPostId, setExpandedPostId] = useState(null);
   const { getCacheData, setCacheData } = useCache();
+  
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         // First fetch user data
-        const profileRes = await axios.get('/api/auth/check');
+        const profileRes = await axios.get('/auth/check');
         const userData = profileRes.data.user;
         setUser(userData);
         setCacheData('user_profile', userData);
 
         // Then fetch posts and comments using the user's email
         const [postsRes, commentsRes] = await Promise.all([
-          axios.get('/api/posts?authorEmail=' + encodeURIComponent(userData.email)),
-          axios.get('/api/comments/user')
+          axios.get('/posts?authorEmail=' + encodeURIComponent(userData.email)),
+          axios.get('/comments/user')
         ]);
 
         const postsWithUsernames = postsRes.data.posts.map(post => ({
@@ -223,6 +224,8 @@ const ProfilePage = () => {
       </div>
     );
   }
+
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-12 px-4 sm:px-6 lg:px-8">

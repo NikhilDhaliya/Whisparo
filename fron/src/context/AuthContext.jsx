@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
           }
           
           // If no valid cache, verify token and get user data
-          const response = await axios.get('/api/auth/check');
+          const response = await axios.get('/auth/check');
           if (mounted) {
             setUser(response.data.user);
             setIsAuthenticated(true);
