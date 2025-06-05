@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import CommentList from '../components/comments/CommentList';
 import { useCache } from '../context/CacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import PostCard from '../components/posts/PostCard';
+import PostCard from '../components/PostCard';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
