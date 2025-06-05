@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
           // Verify token and get user data
-          const response = await axios.get('/auth/check');
+          const response = await axios.get('/api/auth/check');
           setUser(response.data.user);
           setIsAuthenticated(true);
         } catch (error) {
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     setLoading(true);
     try {
-      const response = await axios.post('/auth/login', credentials);
+      const response = await axios.post('/api/auth/login', credentials);
       const { token, user } = response.data;
       
       // Store token and set axios header
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     setLoading(true);
     try {
-      const response = await axios.post('/auth/register', userData);
+      const response = await axios.post('/api/auth/register', userData);
       const { token, user } = response.data;
       
       localStorage.setItem('token', token);
@@ -91,7 +91,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setLoading(true);
     try {
-      await axios.post('/auth/logout');
+      await axios.post('/api/auth/logout');
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
