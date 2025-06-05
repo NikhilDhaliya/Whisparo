@@ -9,13 +9,9 @@ import {
 } from "../controllers/post.controller.js";
 import { votePost, getVoteStatus } from "../controllers/vote.controller.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
-import { setUsernameMiddleware } from "../middlewares/setUsername.js";
 import { upload } from "../config/cloudinary.js";
 
 const router = express.Router();
-
-// Apply setUsernameMiddleware to all routes
-router.use(setUsernameMiddleware);
 
 // Get trending posts (must be before /:id routes)
 router.get("/trending", getTrendingPosts);

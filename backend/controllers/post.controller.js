@@ -13,10 +13,7 @@ export const createPost = async (req, res) => {
     if (usernameCookie) {
       try {
         const parsed = JSON.parse(usernameCookie);
-        const age = Date.now() - parsed.timestamp;
-        if (age < 30 * 60 * 1000) {
-          username = parsed.username;
-        }
+        username = parsed.username;
       } catch (e) {
         console.error('Error parsing username cookie:', e);
       }
@@ -180,10 +177,7 @@ export const updatePost = async (req, res) => {
     if (usernameCookie) {
       try {
         const parsed = JSON.parse(usernameCookie);
-        const age = Date.now() - parsed.timestamp;
-        if (age < 30 * 60 * 1000) {
-          currentUsername = parsed.username;
-        }
+        currentUsername = parsed.username;
       } catch (e) {
         console.error('Error parsing username cookie:', e);
       }
