@@ -6,10 +6,11 @@ import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import CommentList from '../components/comments/CommentList';
 import { useCache } from '../context/CacheContext';
+import { useAuth } from '../context/AuthContext';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user: authUser, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -29,16 +30,17 @@ const ProfilePage = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      try {
-        // First fetch user data
-        const profileRes = await axios.get('/auth/check');
-        const userData = profileRes.data.user;
-        setUser(userData);
-        setCacheData('user_profile', userData);
+      if (!authUser) {
+        setError('Not authenticated');
+        setLoading(false);
+        navigate('/login');
+        return;
+      }
 
-        // Then fetch posts and comments using the user's email
+      try {
+        // Fetch posts and comments using the user's email
         const [postsRes, commentsRes] = await Promise.all([
-          axios.get('/posts?authorEmail=' + encodeURIComponent(userData.email)),
+          axios.get('/posts?authorEmail=' + encodeURIComponent(authUser.email)),
           axios.get('/comments/user')
         ]);
 
@@ -47,10 +49,10 @@ const ProfilePage = () => {
           username: post.newUsername || post.authorUsername || 'Anonymous'
         }));
         setUserPosts(postsWithUsernames);
-        setCacheData(`user_posts_${userData.email}`, postsWithUsernames);
+        setCacheData(`user_posts_${authUser.email}`, postsWithUsernames);
 
         setUserComments(commentsRes.data.comments);
-        setCacheData(`user_comments_${userData.email}`, commentsRes.data.comments);
+        setCacheData(`user_comments_${authUser.email}`, commentsRes.data.comments);
 
         setError(null);
       } catch (error) {
@@ -65,16 +67,16 @@ const ProfilePage = () => {
     };
 
     fetchUserData();
-  }, [navigate, getCacheData, setCacheData]);
+  }, [navigate, getCacheData, setCacheData, authUser]);
 
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      await axios.post('/api/auth/logout');
+      await logout();
       // Clear cache on logout
       setCacheData('user_profile', null);
-      setCacheData(`user_posts_${user.email}`, null);
-      setCacheData(`user_comments_${user.email}`, null);
+      setCacheData(`user_posts_${authUser.email}`, null);
+      setCacheData(`user_comments_${authUser.email}`, null);
       navigate('/login');
     } catch (error) {
       console.error('Error logging out:', error);
@@ -98,7 +100,7 @@ const ProfilePage = () => {
           post.id === postId ? { ...post, body: editedPostContent } : post
         );
         // Update cache
-        setCacheData(`user_posts_${user.email}`, newPosts);
+        setCacheData(`user_posts_${authUser.email}`, newPosts);
         return newPosts;
       });
 
@@ -127,7 +129,7 @@ const ProfilePage = () => {
           comment._id === commentId ? { ...comment, body: editedCommentContent } : comment
         );
         // Update cache
-        setCacheData(`user_comments_${user.email}`, newComments);
+        setCacheData(`user_comments_${authUser.email}`, newComments);
         return newComments;
       });
 
@@ -152,7 +154,7 @@ const ProfilePage = () => {
       setUserPosts(prevPosts => {
         const newPosts = prevPosts.filter(post => post.id !== postId);
         // Update cache
-        setCacheData(`user_posts_${user.email}`, newPosts);
+        setCacheData(`user_posts_${authUser.email}`, newPosts);
         return newPosts;
       });
 
@@ -175,7 +177,7 @@ const ProfilePage = () => {
       setUserComments(prevComments => {
         const newComments = prevComments.filter(comment => comment._id !== commentId);
         // Update cache
-        setCacheData(`user_comments_${user.email}`, newComments);
+        setCacheData(`user_comments_${authUser.email}`, newComments);
         return newComments;
       });
 
@@ -235,11 +237,11 @@ const ProfilePage = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="flex items-center space-x-4">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold">
-                {user?.email?.charAt(0).toUpperCase()}
+                {authUser?.email?.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{user?.username || 'Anonymous'}</h1>
-                <p className="text-sm sm:text-base text-gray-500 break-all">{user?.email}</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{authUser?.username || 'Anonymous'}</h1>
+                <p className="text-sm sm:text-base text-gray-500 break-all">{authUser?.email}</p>
               </div>
             </div>
             <button
