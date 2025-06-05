@@ -14,12 +14,12 @@ const HomePage = () => {
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const containerRef = useRef(null);
-  const { getCacheData, setCacheData } = useCache();
+  const { getCache, setCache } = useCache();
 
   const fetchPosts = async (forceRefresh = false) => {
     try {
       // Check cache first
-      const cachedData = getCacheData('homePosts');
+      const cachedData = getCache('homePosts');
       if (cachedData && !forceRefresh) {
         setPosts(cachedData);
         setLoading(false);
@@ -30,10 +30,9 @@ const HomePage = () => {
       const response = await axios.get('/api/posts');
       const shuffledPosts = response.data.posts.sort(() => Math.random() - 0.5);
       setPosts(shuffledPosts);
-      setCacheData('homePosts', shuffledPosts);
+      setCache('homePosts', shuffledPosts, 5 * 60 * 1000); // Cache for 5 minutes
       setError(null);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
+    } catch {
       setError('Failed to load posts.');
     } finally {
       setLoading(false);
@@ -43,7 +42,7 @@ const HomePage = () => {
   const fetchUserProfile = async (forceRefresh = false) => {
     try {
       // Check cache first
-      const cachedData = getCacheData('userProfile');
+      const cachedData = getCache('userProfile');
       if (cachedData && !forceRefresh) {
         setCurrentUserEmail(cachedData.email);
         return;
@@ -51,44 +50,31 @@ const HomePage = () => {
 
       const response = await axios.get('/api/auth/check');
       setCurrentUserEmail(response.data.user.email);
-      setCacheData('userProfile', response.data.user);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
+      setCache('userProfile', response.data.user, 5 * 60 * 1000); // Cache for 5 minutes
+    } catch {
       setCurrentUserEmail(null);
     }
   };
 
-  // Initial data fetch
   useEffect(() => {
-    const loadData = async () => {
-      await Promise.all([
-        fetchUserProfile(),
-        fetchPosts()
-      ]);
-    };
-    loadData();
-  }, []); // Only run on mount
-
-  // Handle refresh trigger
-  useEffect(() => {
-    if (refreshTrigger > 0) {
-      fetchPosts(true);
-      fetchUserProfile(true);
-    }
+    fetchUserProfile();
+    fetchPosts();
   }, [refreshTrigger]);
 
   const handleRefresh = async () => {
     if (loading || isRefreshing) return;
     
     setIsRefreshing(true);
-    setRefreshTrigger(prev => prev + 1);
+    await fetchPosts(true); // Force refresh
+    await fetchUserProfile(true); // Force refresh
     setIsRefreshing(false);
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handlePostDeleted = (deletedPostId) => {
     setPosts(prevPosts => {
       const newPosts = prevPosts.filter(post => post.id !== deletedPostId);
-      setCacheData('homePosts', newPosts);
+      setCache('homePosts', newPosts, 5 * 60 * 1000); // Update cache
       return newPosts;
     });
   };
@@ -98,7 +84,7 @@ const HomePage = () => {
       const newPosts = prevPosts.map(post => 
         post.id === updatedPost._id ? { ...post, content: updatedPost.body } : post
       );
-      setCacheData('homePosts', newPosts);
+      setCache('homePosts', newPosts, 5 * 60 * 1000); // Update cache
       return newPosts;
     });
   };
