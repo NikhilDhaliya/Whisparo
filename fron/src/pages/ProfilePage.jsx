@@ -1,240 +1,304 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useCache } from '../context/CacheContext';
-import { AnimatePresence } from 'framer-motion';
-import { FaEdit, FaTrash, FaSignOutAlt } from 'react-icons/fa';
+import { FaSignOutAlt, FaUser, FaEnvelope, FaThumbsUp, FaComment, FaEdit, FaTrash, FaSave, FaTimes, FaSpinner, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
+import CommentList from '../components/comments/CommentList';
 
 const ProfilePage = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingPost, setEditingPost] = useState(null);
-  const [editContent, setEditContent] = useState('');
-  const navigate = useNavigate();
-  const { getCache, setCache, clearCache } = useCache();
-
-  const fetchUserData = async (forceRefresh = false) => {
-    try {
-      // Check cache first
-      const cachedData = getCache('userProfile');
-      if (cachedData && !forceRefresh) {
-        setUser(cachedData);
-        return cachedData;
-      }
-
-      const response = await axios.get('/api/auth/check');
-      if (!response.data.user) {
-        throw new Error('Invalid user data');
-      }
-      setUser(response.data.user);
-      setCache('userProfile', response.data.user, 5 * 60 * 1000); // Cache for 5 minutes
-      return response.data.user;
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      setError(error.response?.data?.message || 'Failed to load profile');
-      return null;
-    }
-  };
-
-  const fetchUserPosts = async (forceRefresh = false) => {
-    try {
-      // Check cache first
-      const cachedData = getCache('userPosts');
-      if (cachedData && !forceRefresh) {
-        setPosts(cachedData);
-        return;
-      }
-
-      const response = await axios.get('/api/posts/user');
-      if (!response.data.posts) {
-        throw new Error('Invalid response format');
-      }
-      setPosts(response.data.posts);
-      setCache('userPosts', response.data.posts, 5 * 60 * 1000); // Cache for 5 minutes
-      setError(null);
-    } catch (error) {
-      console.error('Error fetching user posts:', error);
-      setError(error.response?.data?.message || 'Failed to load posts');
-    }
-  };
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [userPosts, setUserPosts] = useState([]);
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editedPostContent, setEditedPostContent] = useState('');
+  const [isSavingPost, setIsSavingPost] = useState(false);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [expandedPostId, setExpandedPostId] = useState(null);
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
+    const fetchUserData = async () => {
       try {
-        const userData = await fetchUserData();
-        if (userData) {
-          await fetchUserPosts();
-        }
+        const profileRes = await axios.get('/api/auth/check');
+        setUser(profileRes.data.user);
+
+        const postsRes = await axios.get('/api/posts?authorEmail=' + encodeURIComponent(profileRes.data.user.email));
+        setUserPosts(postsRes.data.posts);
+        setError(null);
       } catch (error) {
-        console.error('Error loading profile data:', error);
+        console.error('Error fetching user data:', error);
+        setError('Failed to load profile');
+        if (error.response?.status === 401) {
+          navigate('/login');
+        }
       } finally {
         setLoading(false);
       }
     };
-    loadData();
-  }, []);
+
+    fetchUserData();
+  }, [navigate]);
 
   const handleLogout = async () => {
     try {
+      setIsLoggingOut(true);
       await axios.post('/api/auth/logout');
-      clearCache(); // Clear all cached data
+      localStorage.removeItem('user');
       navigate('/login');
     } catch (error) {
       console.error('Error logging out:', error);
-      setError('Failed to logout. Please try again.');
+      toast.error('Failed to logout');
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
-  const handleEdit = (post) => {
-    setEditingPost(post);
-    setEditContent(post.content);
+  const handleEditPost = (post) => {
+    setEditingPostId(post.id);
+    setEditedPostContent(post.content);
   };
 
-  const handleUpdate = async () => {
-    if (!editingPost) return;
+  const handleCancelEdit = () => {
+    setEditingPostId(null);
+    setEditedPostContent('');
+  };
 
+  const handleUpdatePost = async (postId) => {
+    if (!editedPostContent.trim()) return;
+    setIsSavingPost(true);
     try {
-      await axios.put(`/api/posts/${editingPost._id}`, {
-        content: editContent
-      });
-
-      setPosts(prevPosts => {
-        const newPosts = prevPosts.map(post => 
-          post._id === editingPost._id ? { ...post, content: editContent } : post
-        );
-        setCache('userPosts', newPosts, 5 * 60 * 1000); // Update cache
-        return newPosts;
-      });
-
-      setEditingPost(null);
-      setEditContent('');
+      await axios.put(`/api/posts/${postId}`, { body: editedPostContent });
+      setUserPosts(userPosts.map(post => 
+        post.id === postId ? { ...post, content: editedPostContent } : post
+      ));
+      setEditingPostId(null);
+      setEditedPostContent('');
+      toast.success('Post updated successfully');
     } catch (error) {
       console.error('Error updating post:', error);
-      setError('Failed to update post. Please try again.');
+      toast.error('Failed to update post');
+    } finally {
+      setIsSavingPost(false);
     }
   };
 
-  const handleDelete = async (postId) => {
+  const handleDeletePost = async (postId) => {
+    if (isDeletingPost) return;
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+
+    setIsDeletingPost(true);
     try {
       await axios.delete(`/api/posts/${postId}`);
-      setPosts(prevPosts => {
-        const newPosts = prevPosts.filter(post => post._id !== postId);
-        setCache('userPosts', newPosts, 5 * 60 * 1000); // Update cache
-        return newPosts;
-      });
+      setUserPosts(userPosts.filter(post => post.id !== postId));
+      toast.success('Post deleted successfully');
     } catch (error) {
       console.error('Error deleting post:', error);
-      setError('Failed to delete post. Please try again.');
+      toast.error('Failed to delete post');
+    } finally {
+      setIsDeletingPost(false);
     }
+  };
+
+  const toggleComments = (postId) => {
+    setExpandedPostId(expandedPostId === postId ? null : postId);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <FaSpinner className="animate-spin text-4xl text-blue-600" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-500 bg-red-50 p-4 rounded-xl">
-          {error}
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">
-          Please log in to view your profile
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-red-500 text-xl">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* iOS-style Navigation Bar */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-semibold text-gray-900">Profile</h1>
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all duration-300"
-            >
-              <FaSignOutAlt />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Profile Content */}
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">{user.name}</h2>
-          <p className="text-gray-600">{user.email}</p>
-        </div>
-
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <div
-              key={post._id}
-              className="bg-white rounded-2xl shadow-sm p-6"
-            >
-              {editingPost?._id === post._id ? (
-                <div className="space-y-4">
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows="3"
-                  />
-                  <div className="flex justify-end space-x-2">
-                    <button
-                      onClick={() => setEditingPost(null)}
-                      className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleUpdate}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600"
-                    >
-                      Update
-                    </button>
-                  </div>
-                </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+          {/* Profile Header */}
+        <div className="bg-white shadow-xl rounded-2xl p-4 sm:p-8 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold">
+                {user?.email?.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{user?.username || 'Anonymous'}</h1>
+                <p className="text-sm sm:text-base text-gray-500 break-all">{user?.email}</p>
+              </div>
+            </div>
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+              className={`flex items-center justify-center space-x-2 px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 w-full sm:w-auto ${
+                  isLoggingOut
+                    ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-red-600 hover:bg-red-700 hover:shadow-lg'
+                }`}
+              >
+              {isLoggingOut ? (
+                <FaSpinner className="animate-spin" />
               ) : (
                 <>
-                  <p className="text-gray-800 mb-4">{post.content}</p>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-4">
-                      <button
-                        onClick={() => handleEdit(post)}
-                        className="p-2 text-gray-600 hover:text-blue-500"
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(post._id)}
-                        className="p-2 text-gray-600 hover:text-red-500"
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </div>
+                <FaSignOutAlt />
+                  <span>Logout</span>
                 </>
               )}
+              </button>
             </div>
-          ))}
+          </div>
+
+        {/* Posts Section */}
+        <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Your Posts</h2>
+              </div>
+
+          <div className="p-4 sm:p-6">
+            <div className="space-y-4 sm:space-y-6">
+              {userPosts.length === 0 ? (
+                <div className="text-center py-8 sm:py-12">
+                  <p className="text-base sm:text-lg text-gray-500">No posts yet</p>
+                  <button
+                    onClick={() => navigate('/create')}
+                    className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                  >
+                    Create Your First Post
+                  </button>
+              </div>
+                    ) : (
+                      userPosts.map((post) => (
+                        <div
+                          key={post.id}
+                    className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-lg transition-shadow"
+                        >
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
+                      <div className="flex-1">
+                              {editingPostId === post.id ? (
+                                <textarea
+                                  value={editedPostContent}
+                                  onChange={(e) => setEditedPostContent(e.target.value)}
+                            className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm sm:text-base"
+                                  rows="4"
+                                />
+                              ) : (
+                          <div className="space-y-4">
+                            <p className="text-gray-800 text-base sm:text-lg break-words">{post.content}</p>
+                            {post.image?.url && (
+                              <div className="mt-2">
+                                <img
+                                  src={post.image.url}
+                                  alt="Post attachment"
+                                  className="max-h-96 w-full object-contain rounded-lg"
+                                />
+                              </div>
+                            )}
+                          </div>
+                              )}
+                              
+                        <div className="mt-4 flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-500">
+                          <span className="flex items-center space-x-1">
+                            <FaThumbsUp />
+                            <span>{post.likes || 0}</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <FaComment />
+                            <span>{post.commentsCount || 0}</span>
+                          </span>
+                          <span>
+                                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                          </span>
+                        </div>
+                            </div>
+                            
+                      <div className="flex items-center justify-end sm:justify-start space-x-2 sm:ml-4">
+                              {editingPostId === post.id ? (
+                          <>
+                                  <button
+                                    onClick={() => handleUpdatePost(post.id)}
+                                    disabled={!editedPostContent.trim() || isSavingPost}
+                              className={`p-2 rounded-lg ${
+                                !editedPostContent.trim() || isSavingPost
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-green-100 text-green-600 hover:bg-green-200'
+                                    }`}
+                                  >
+                              <FaSave />
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEdit}
+                                    disabled={isSavingPost}
+                              className="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                  >
+                                    <FaTimes />
+                                  </button>
+                          </>
+                              ) : (
+                                <>
+                                  <button 
+                                      onClick={() => handleEditPost(post)}
+                              className="p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                                  >
+                              <FaEdit />
+                                  </button>
+                                   <button 
+                                      onClick={() => handleDeletePost(post.id)}
+                                      disabled={isDeletingPost}
+                              className={`p-2 rounded-lg text-gray-600 hover:bg-red-100 hover:text-red-600 ${
+                                        isDeletingPost ? 'opacity-50 cursor-not-allowed' : ''
+                                      }`}
+                                  >
+                              <FaTrash />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                    {/* Comments Section */}
+                    <div className="mt-4">
+                      <button
+                        onClick={() => toggleComments(post.id)}
+                        className="flex items-center space-x-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                      >
+                        {expandedPostId === post.id ? (
+                          <>
+                            <FaChevronUp />
+                            <span>Hide Comments</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaChevronDown />
+                            <span>Show Comments</span>
+                          </>
+                        )}
+                      </button>
+                      
+                      {expandedPostId === post.id && (
+                        <div className="mt-4">
+                          <CommentList 
+                            postId={post.id} 
+                            isOpen={true}
+                            onClose={() => setExpandedPostId(null)}
+                          />
+                        </div>
+                    )}
+                  </div>
+                  </div>
+                ))
+                )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
