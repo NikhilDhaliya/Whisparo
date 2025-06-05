@@ -1,21 +1,31 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CacheProvider } from './context/CacheContext';
 import AppLayout from './components/layout/AppLayout';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import Signup from './pages/Signup';
-import CreatePost from './pages/CreatePost';
-import ProfilePage from './pages/ProfilePage';
-import TrendingPage from './pages/TrendingPage';
 import { Toaster } from 'react-hot-toast';
+
+// Lazy load pages
+const HomePage = lazy(() => import('./pages/HomePage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const Signup = lazy(() => import('./pages/Signup'));
+const CreatePost = lazy(() => import('./pages/CreatePost'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const TrendingPage = lazy(() => import('./pages/TrendingPage'));
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+  </div>
+);
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <PageLoader />;
   }
 
   if (!isAuthenticated) {
@@ -28,48 +38,74 @@ const ProtectedRoute = ({ children }) => {
 const App = () => {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 3000,
-            style: {
-              background: '#333',
-              color: '#fff',
-              fontSize: '14px',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              maxWidth: '300px',
-            },
-            success: {
-              iconTheme: {
-                primary: '#4ade80',
-                secondary: '#fff',
+      <CacheProvider>
+        <BrowserRouter>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#333',
+                color: '#fff',
+                fontSize: '14px',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                maxWidth: '300px',
               },
-            },
-            error: {
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
+              success: {
+                iconTheme: {
+                  primary: '#4ade80',
+                  secondary: '#fff',
+                },
               },
-            },
-          }}
-        />
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<HomePage />} />
-            <Route path="/create" element={<CreatePost/>} />
-            <Route path="/profile" element={<ProfilePage/>} />
-            <Route path="/trending" element={<TrendingPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+          <Routes>
+            <Route path="/login" element={
+              <Suspense fallback={<PageLoader />}>
+                <LoginPage />
+              </Suspense>
+            } />
+            <Route path="/signup" element={
+              <Suspense fallback={<PageLoader />}>
+                <Signup />
+              </Suspense>
+            } />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={
+                <Suspense fallback={<PageLoader />}>
+                  <HomePage />
+                </Suspense>
+              } />
+              <Route path="/create" element={
+                <Suspense fallback={<PageLoader />}>
+                  <CreatePost />
+                </Suspense>
+              } />
+              <Route path="/profile" element={
+                <Suspense fallback={<PageLoader />}>
+                  <ProfilePage />
+                </Suspense>
+              } />
+              <Route path="/trending" element={
+                <Suspense fallback={<PageLoader />}>
+                  <TrendingPage />
+                </Suspense>
+              } />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </CacheProvider>
     </AuthProvider>
   )
 }
