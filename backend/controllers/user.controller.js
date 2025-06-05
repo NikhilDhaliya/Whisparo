@@ -173,10 +173,14 @@ export const checkAuth = async (req, res) => {
                 username = parsed.username;
             } catch (e) {
                 console.error('Error parsing username cookie:', e);
-                username = 'Anonymous';
+                // Generate new username if cookie is invalid
+                username = generateFriendlyUsername();
+                setUsernameCookie(res, username);
             }
         } else {
-            username = 'Anonymous';
+            // Generate new username if no cookie exists
+            username = generateFriendlyUsername();
+            setUsernameCookie(res, username);
         }
 
         res.status(200).json({
