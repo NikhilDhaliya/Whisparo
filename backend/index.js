@@ -14,7 +14,10 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: ['http://localhost:5173'], // Support both Vite and React default ports
+  origin: [
+    'http://localhost:5173',
+    'https://whisparo-frontend.onrender.com'
+  ],
   credentials: true, // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
@@ -71,7 +74,8 @@ app.use((req, res) => {
   res.status(404).send('Not Found');
 });
 
-app.listen(5000, () => {
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
     connectDB();
-    console.log("Server is running on port 5000");
+    console.log(`Server is running on port ${PORT}`);
 });
