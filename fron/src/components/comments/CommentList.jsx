@@ -31,6 +31,7 @@ const Comment = ({ comment, postId, onCommentAdded }) => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
       className="mt-4"
     >
       <div className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200">
@@ -77,6 +78,7 @@ const Comment = ({ comment, postId, onCommentAdded }) => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
               className="mt-3 overflow-hidden"
             >
               <CommentForm
@@ -95,7 +97,7 @@ const Comment = ({ comment, postId, onCommentAdded }) => {
       </div>
 
       {comment.replies && comment.replies.length > 0 && (
-        <div className="ml-8 mt-2">
+        <div className="ml-4 sm:ml-8 mt-2">
           {comment.replies.map((reply) => (
             <Comment
               key={reply._id}
@@ -157,6 +159,7 @@ const CommentList = ({ postId, isOpen, onClose }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
           onClick={onClose}
         >
@@ -165,7 +168,7 @@ const CommentList = ({ postId, isOpen, onClose }) => {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[80vh] overflow-hidden"
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-hidden flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -174,8 +177,8 @@ const CommentList = ({ postId, isOpen, onClose }) => {
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">Comments</h3>
                 <motion.button
-                  onClick={onClose}
                   whileTap={{ scale: 0.95 }}
+                  onClick={onClose}
                   className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                 >
                   <FaTimes />
@@ -199,7 +202,9 @@ const CommentList = ({ postId, isOpen, onClose }) => {
                 </motion.div>
               ) : (
                 <>
-                  <CommentForm postId={postId} onCommentAdded={handleCommentAdded} />
+                  <div className="sticky top-0 z-10 bg-gray-50 pb-4">
+                    <CommentForm postId={postId} onCommentAdded={handleCommentAdded} />
+                  </div>
                   <div className="mt-6 space-y-4">
                     {comments.length === 0 ? (
                       <motion.div
