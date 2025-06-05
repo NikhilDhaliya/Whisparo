@@ -104,12 +104,11 @@ export const loginUser = async (req, res) => {
         const username = generateFriendlyUsername();
         setUsernameCookie(res, username);
             
-        // We don't need to update all user's posts with new username here 
-        // if we are only using the cookie for display purposes.
-        // await Post.updateMany(
-        //     { authorEmail: email },
-        //     { authorUsername: username }
-        // );
+        // Update all user's posts with new username
+        await Post.updateMany(
+            { authorEmail: email },
+            { authorUsername: username }
+        );
 
         res.status(200).cookie('auth', token, cookieOptions).json({
             user: {
