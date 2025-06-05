@@ -14,6 +14,7 @@ const router = express.Router();
 router.get('/posts/:postId', getComments);
 
 // Protected routes
+router.use(authMiddleware);
 router.post('/posts/:postId', createComment);
 router.post('/:commentId/vote', voteComment);
 router.delete('/:commentId', deleteComment);
