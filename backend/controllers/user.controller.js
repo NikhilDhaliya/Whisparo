@@ -100,38 +100,22 @@ export const loginUser = async (req, res) => {
         existingUser.isLoggedIn = true;
         await existingUser.save();
 
-        // Check if username cookie exists and is valid
+        // Check if username cookie exists
         const usernameCookie = req.cookies.username;
         let username;
-        let shouldUpdateUsername = false;
         
         if (usernameCookie) {
             try {
                 const parsed = JSON.parse(usernameCookie);
-                const age = Date.now() - parsed.timestamp;
-                if (age < 30 * 60 * 1000) { // 30 minutes
-                    username = parsed.username;
-                } else {
-                    shouldUpdateUsername = true;
-                }
+                username = parsed.username;
             } catch (e) {
                 console.error('Error parsing username cookie:', e);
-                shouldUpdateUsername = true;
+                username = generateFriendlyUsername();
+                setUsernameCookie(res, username);
             }
         } else {
-            shouldUpdateUsername = true;
-        }
-
-        // Generate new username if needed
-        if (shouldUpdateUsername) {
             username = generateFriendlyUsername();
             setUsernameCookie(res, username);
-            
-            // Update all user's posts with new username
-            await Post.updateMany(
-                { authorEmail: email },
-                { authorUsername: username }
-            );
         }
 
         res.status(200).cookie('auth', token, cookieOptions).json({
@@ -179,38 +163,20 @@ export const checkAuth = async (req, res) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        // Check if username cookie exists and is valid
+        // Check if username cookie exists
         const usernameCookie = req.cookies.username;
         let username;
-        let shouldUpdateUsername = false;
         
         if (usernameCookie) {
             try {
                 const parsed = JSON.parse(usernameCookie);
-                const age = Date.now() - parsed.timestamp;
-                if (age < 30 * 60 * 1000) { // 30 minutes
-                    username = parsed.username;
-                } else {
-                    shouldUpdateUsername = true;
-                }
+                username = parsed.username;
             } catch (e) {
                 console.error('Error parsing username cookie:', e);
-                shouldUpdateUsername = true;
+                username = 'Anonymous';
             }
         } else {
-            shouldUpdateUsername = true;
-        }
-
-        // Generate new username if needed
-        if (shouldUpdateUsername) {
-            username = generateFriendlyUsername();
-            setUsernameCookie(res, username);
-            
-            // Update all user's posts with new username
-            await Post.updateMany(
-                { authorEmail: user.email },
-                { authorUsername: username }
-            );
+            username = 'Anonymous';
         }
 
         res.status(200).json({

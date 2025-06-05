@@ -23,30 +23,17 @@ export const setUsernameMiddleware = (req, res, next) => {
   const usernameCookie = req.cookies.username;
 
   if (usernameCookie) {
-    const parsed = JSON.parse(usernameCookie);
-    const age = Date.now() - parsed.timestamp;
-
-    if (age < 30 * 60 * 1000) {
+    try {
+      const parsed = JSON.parse(usernameCookie);
       req.sessionUsername = parsed.username;
-      return next(); // Username still valid
+    } catch (e) {
+      console.error('Error parsing username cookie:', e);
+      req.sessionUsername = 'Anonymous';
     }
+  } else {
+    req.sessionUsername = 'Anonymous';
   }
-
-  // Generate new username and store with timestamp
-  const newUsername = generateFriendlyUsername();
-  const payload = {
-    username: newUsername,
-    timestamp: Date.now()
-  };
-
-  res.cookie('username', JSON.stringify(payload), {
-    httpOnly: true,
-    maxAge: 30 * 60 * 1000, // 30 minutes
-    secure: false,
-    sameSite: 'Lax'
-  });
-
-  req.sessionUsername = newUsername;
+  
   next();
 };
 
