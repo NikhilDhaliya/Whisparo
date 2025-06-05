@@ -17,7 +17,7 @@ const cookieOptions = {
 
 const usernameCookieOptions = {
     httpOnly: true,
-    maxAge: 30 * 60 * 1000, // 30 minutes
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days instead of 30 minutes
     secure: false,
     sameSite: 'Lax'
 };
@@ -161,19 +161,22 @@ export const checkAuth = async (req, res) => {
         if (usernameCookie) {
             try {
                 const parsed = JSON.parse(usernameCookie);
-                const age = Date.now() - parsed.timestamp;
-                if (age < 30 * 60 * 1000) {
-                    username = parsed.username;
-                }
+                username = parsed.username;
             } catch (e) {
                 console.error('Error parsing username cookie:', e);
             }
         }
 
-        // Generate new username if needed
+        // Only generate new username if none exists
         if (!username) {
             username = generateFriendlyUsername();
             setUsernameCookie(res, username);
+            
+            // Update all user's posts with new username
+            await Post.updateMany(
+                { authorEmail: user.email },
+                { authorUsername: username }
+            );
         }
 
         res.status(200).json({
