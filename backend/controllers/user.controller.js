@@ -2,6 +2,7 @@ import User from "../models/user.js"
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { v4 as uuidv4 } from 'uuid';
+import Post from "../models/post.js";
 
 const generateToken = (userId) => {
     return jwt.sign({userId}, process.env.JWT_SECRET , {expiresIn:"7d", algorithm: "HS256" })
@@ -101,6 +102,12 @@ export const loginUser = async (req, res) => {
 
         const username = generateFriendlyUsername();
         setUsernameCookie(res, username);
+
+        // Update all user's posts with new username
+        await Post.updateMany(
+            { authorEmail: email },
+            { authorUsername: username }
+        );
 
         res.status(200).cookie('auth', token, cookieOptions).json({
             user: {

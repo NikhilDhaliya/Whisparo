@@ -164,6 +164,21 @@ export const updatePost = async (req, res) => {
     const {body, category } = req.body;
     const userEmail = req.user.email;
 
+    // Get current username from cookie
+    const usernameCookie = req.cookies.username;
+    let currentUsername = 'Anonymous';
+    if (usernameCookie) {
+      try {
+        const parsed = JSON.parse(usernameCookie);
+        const age = Date.now() - parsed.timestamp;
+        if (age < 30 * 60 * 1000) {
+          currentUsername = parsed.username;
+        }
+      } catch (e) {
+        console.error('Error parsing username cookie:', e);
+      }
+    }
+
     const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
@@ -173,10 +188,23 @@ export const updatePost = async (req, res) => {
 
     post.body = body || post.body;
     post.category = category || post.category;
+    post.authorUsername = currentUsername; // Update the username
 
     await post.save();
 
-    res.status(200).json({ message: "Post updated", post });
+    // Transform the response to match frontend expectations
+    const responsePost = {
+      id: post._id,
+      content: post.body,
+      category: post.category,
+      authorEmail: post.authorEmail,
+      createdAt: post.createdAt,
+      newUsername: post.authorUsername,
+      likes: post.votes.upvotes.length,
+      image: post.image
+    };
+
+    res.status(200).json({ message: "Post updated", post: responsePost });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
