@@ -7,7 +7,7 @@ const Avatar = ({ username, email, size = 'sm' }) => {
     lg: 'w-9 h-9 text-lg'
   };
   
-  // Generate a consistent color based on username or email
+  // Generate a consistent color based on username
   const getColor = (text) => {
     if (!text) return 'bg-gray-100 text-gray-600';
     
@@ -25,14 +25,12 @@ const Avatar = ({ username, email, size = 'sm' }) => {
     return colors[index % colors.length];
   };
   
-  // Get initials from username or email
+  // Get initials from username
   const getInitials = (text) => {
     if (!text) return '?';
     
-    // If it's an email, use the part before @
-    const name = text.includes('@') ? text.split('@')[0] : text;
-    
-    return name
+    // Split by common separators and get first letter of each part
+    return text
       .split(/[\s._-]/)
       .map(word => word[0])
       .join('')
