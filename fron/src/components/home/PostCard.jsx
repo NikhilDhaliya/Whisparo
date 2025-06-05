@@ -304,16 +304,6 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
       </div>
 
       {/* Comment List Modal/Section (This is the correct one for the modal) */}
-      <AnimatePresence>
-        {showComments && (
-          <CommentList 
-            postId={postId} 
-            isOpen={showComments} 
-            onClose={() => setShowComments(false)} 
-            onCommentCountUpdate={handleCommentCountUpdate}
-          />
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 };
