@@ -49,7 +49,7 @@ const ProfilePage = () => {
         return;
       }
 
-      const response = await axios.get('/api/posts/user');
+      const response = await axios.get(`/api/posts?authorEmail=${encodeURIComponent(user.email)}`);
       setPosts(response.data.posts);
       setCacheData('userPosts', response.data.posts);
     } catch (error) {
@@ -211,10 +211,19 @@ const ProfilePage = () => {
               ) : (
                 <>
                   <p className="text-gray-900 mb-4">{post.body}</p>
+                  {post.image?.url && (
+                    <div className="mb-4">
+                      <img
+                        src={post.image.url}
+                        alt="Post attachment"
+                        className="max-h-96 w-full object-contain rounded-xl"
+                      />
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-4">
                       <span className="text-gray-500 text-sm">
-                        {new Date(post.createdAt).toLocaleDateString()}
+                        {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
                       </span>
                       <button
                         onClick={() => toggleComments(post._id)}
