@@ -303,7 +303,7 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
         </div>
       </div>
 
-      {/* Comment List Modal/Section */}
+      {/* Comment List Modal/Section (This is the correct one for the modal) */}
       <AnimatePresence>
         {showComments && (
           <CommentList 
