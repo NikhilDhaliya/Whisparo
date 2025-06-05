@@ -9,13 +9,18 @@ import CreatePost from './pages/CreatePost';
 import ProfilePage from './pages/ProfilePage';
 import TrendingPage from './pages/TrendingPage';
 import { Toaster } from 'react-hot-toast';
+import './styles/globals.css';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="ios-spinner" />
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -33,25 +38,12 @@ const App = () => {
           position="top-right"
           toastOptions={{
             duration: 3000,
+            className: 'ios-toast',
             style: {
-              background: '#333',
+              background: 'rgba(0, 0, 0, 0.8)',
               color: '#fff',
-              fontSize: '14px',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              maxWidth: '300px',
-            },
-            success: {
-              iconTheme: {
-                primary: '#4ade80',
-                secondary: '#fff',
-              },
-            },
-            error: {
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
-              },
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
             },
           }}
         />
