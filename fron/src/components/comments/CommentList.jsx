@@ -173,7 +173,7 @@ const Comment = ({ comment, postId, onCommentAdded, currentUserEmail }) => {
   );
 };
 
-const CommentList = ({ postId, isOpen, onClose }) => {
+const CommentList = ({ postId, isOpen, onClose, onCommentCountUpdate }) => {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -269,8 +269,8 @@ const CommentList = ({ postId, isOpen, onClose }) => {
       };
       setComments(prevComments => removeComment(prevComments, deletedCommentId));
       
-      if (onCommentAdded) {
-         onCommentAdded(null, true, deletedCommentId); 
+      if (onCommentCountUpdate) {
+         onCommentCountUpdate(-1); 
       }
 
     } else if (newComment) {
@@ -294,8 +294,8 @@ const CommentList = ({ postId, isOpen, onClose }) => {
 
       setComments(prevComments => addComment(prevComments, newComment));
       
-       if (onCommentAdded) {
-         onCommentAdded(newComment); 
+       if (onCommentCountUpdate) {
+         onCommentCountUpdate(1); 
        }
     }
   };

@@ -37,6 +37,10 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
   const [isSaving, setIsSaving] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
 
+  const handleCommentCountUpdate = (delta) => {
+    setCommentsCount(prevCount => Math.max(0, prevCount + delta));
+  };
+
   const handleCommentAdded = (newComment, isDeleted = false, deletedCommentId = null) => {
     if (isDeleted) {
       setCommentsCount(prev => Math.max(0, prev - 1));
@@ -247,13 +251,20 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
               <span className="text-sm font-medium">{likes}</span>
             </motion.button>
             
-            <motion.button 
-              onClick={() => onCommentClick(postId)}
+            <motion.button
+              onClick={() => {
+                setShowComments(!showComments);
+                if (onCommentClick) {
+                  onCommentClick(postId);
+                }
+              }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center space-x-1 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all duration-200"
+              className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all duration-200 ${
+                 showComments ? 'bg-gray-100' : ''
+              }`}
             >
               <FaComment />
-              <span className="text-sm">{commentsCount}</span>
+              <span className="text-sm font-medium">{commentsCount}</span>
             </motion.button>
           </div>
 
@@ -292,17 +303,15 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
         </div>
       </div>
 
-      {/* Comments Modal */}
+      {/* Comment List Modal/Section */}
       <AnimatePresence>
         {showComments && (
-          <div className="mt-4">
-            <CommentList 
-              postId={postId} 
-              isOpen={true}
-              onClose={() => setShowComments(false)}
-              onCommentAdded={handleCommentAdded}
-            />
-          </div>
+          <CommentList 
+            postId={postId} 
+            isOpen={showComments} 
+            onClose={() => setShowComments(false)} 
+            onCommentCountUpdate={handleCommentCountUpdate}
+          />
         )}
       </AnimatePresence>
     </motion.div>
