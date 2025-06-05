@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { formatDistanceToNow } from 'date-fns';
 import Avatar from '../common/Avatar';
@@ -118,6 +118,9 @@ const CommentList = ({ postId, isOpen, onClose }) => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [startY, setStartY] = useState(null);
+  const [currentY, setCurrentY] = useState(null);
+  const modalRef = useRef(null);
 
   const fetchComments = async (page) => {
     try {
@@ -140,7 +143,15 @@ const CommentList = ({ postId, isOpen, onClose }) => {
       setComments([]);
       setHasMore(true);
       fetchComments(1);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
     }
+
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
   }, [postId, isOpen]);
 
   const handleCommentAdded = (newComment) => {
@@ -150,6 +161,47 @@ const CommentList = ({ postId, isOpen, onClose }) => {
   const handleLoadMore = () => {
     setCurrentPage(prevPage => prevPage + 1);
     fetchComments(currentPage + 1);
+  };
+
+  const handleTouchStart = (e) => {
+    setStartY(e.touches[0].clientY);
+    setCurrentY(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!startY) return;
+    
+    const currentY = e.touches[0].clientY;
+    setCurrentY(currentY);
+    
+    const deltaY = currentY - startY;
+    
+    // Only allow dragging down
+    if (deltaY > 0) {
+      e.preventDefault();
+      if (modalRef.current) {
+        modalRef.current.style.transform = `translateY(${deltaY}px)`;
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!startY || !currentY) return;
+    
+    const deltaY = currentY - startY;
+    
+    // If dragged down more than 100px, close the modal
+    if (deltaY > 100) {
+      onClose();
+    } else {
+      // Reset position
+      if (modalRef.current) {
+        modalRef.current.style.transform = 'translateY(0)';
+      }
+    }
+    
+    setStartY(null);
+    setCurrentY(null);
   };
 
   return (
@@ -164,12 +216,16 @@ const CommentList = ({ postId, isOpen, onClose }) => {
           onClick={onClose}
         >
           <motion.div
+            ref={modalRef}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-hidden flex flex-col"
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-hidden flex flex-col touch-none"
             onClick={e => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
             {/* Header */}
             <div className="p-4 border-b border-gray-200">
@@ -187,7 +243,7 @@ const CommentList = ({ postId, isOpen, onClose }) => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 overscroll-contain">
               {loading && comments.length === 0 ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
