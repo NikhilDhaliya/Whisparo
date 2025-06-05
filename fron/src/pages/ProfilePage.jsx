@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import CommentList from '../components/comments/CommentList';
 import { useCache } from '../context/CacheContext';
+import { motion } from 'framer-motion';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
