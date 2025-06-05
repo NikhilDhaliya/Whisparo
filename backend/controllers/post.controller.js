@@ -48,11 +48,13 @@ export const createPost = async (req, res) => {
     // Transform the response to match frontend expectations
     const responsePost = {
       id: newPost._id,
+      body: newPost.body,
       content: newPost.body,
       category: newPost.category,
       authorEmail: newPost.authorEmail,
       createdAt: newPost.createdAt,
       newUsername: newPost.authorUsername,
+      authorUsername: newPost.authorUsername,
       likes: newPost.votes.upvotes.length,
       image: newPost.image
     };
@@ -68,7 +70,6 @@ export const createPost = async (req, res) => {
       details: error
     });
     
-    // Send a more detailed error response
     res.status(500).json({ 
       message: "Error creating post",
       error: error.message,
@@ -113,11 +114,13 @@ export const getAllPosts = async (req, res) => {
       
       return {
         id: post._id,
+        body: post.body,
         content: post.body,
         category: post.category,
         authorEmail: post.authorEmail,
         createdAt: post.createdAt,
         newUsername: post.authorUsername,
+        authorUsername: post.authorUsername,
         likes: post.votes.upvotes.length,
         score: post.votes.score,
         image: post.image,

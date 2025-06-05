@@ -12,13 +12,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onCommentClick }) => {
   const {
     content,
+    body,
     category,
     createdAt,
     likes: initialLikes,
     author,
     id: postId,
     commentsCount: initialCommentsCount,
-    authorEmail
+    authorEmail,
+    newUsername,
+    authorUsername
   } = post;
 
   const [userVoteStatus, setUserVoteStatus] = useState(post.userVote || null);
@@ -27,7 +30,7 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
   const [isVoting, setIsVoting] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(post.body);
+  const [editedContent, setEditedContent] = useState(body || content);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
@@ -110,16 +113,16 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
 
   const handleEdit = () => {
     setIsEditing(true);
-    setEditedContent(content);
+    setEditedContent(body || content);
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditedContent(content);
+    setEditedContent(body || content);
   };
 
   const handleUpdate = async () => {
-    if (editedContent.trim() === content.trim() || !editedContent.trim()) {
+    if (editedContent.trim() === (body || content).trim() || !editedContent.trim()) {
       setIsEditing(false);
       return;
     }
@@ -150,9 +153,9 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Avatar email={post?.authorEmail} />
+            <Avatar email={authorEmail} />
             <div>
-              <span className="font-medium text-gray-900">{post?.newUsername || 'Anonymous'}</span>
+              <span className="font-medium text-gray-900">{newUsername || authorUsername || 'Anonymous'}</span>
               <span className="block text-xs text-gray-500">
                 {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
               </span>
@@ -203,7 +206,7 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
               animate={{ opacity: 1 }}
               className="space-y-4"
             >
-              <p className="text-gray-700 whitespace-pre-wrap">{content}</p>
+              <p className="text-gray-700 whitespace-pre-wrap">{body || content}</p>
               {post.image?.url && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
