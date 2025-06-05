@@ -14,12 +14,12 @@ const HomePage = () => {
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const containerRef = useRef(null);
-  const { getCache, setCache } = useCache();
+  const { getCacheData, setCacheData } = useCache();
 
   const fetchPosts = async (forceRefresh = false) => {
     try {
       // Check cache first
-      const cachedData = getCache('homePosts');
+      const cachedData = getCacheData('homePosts');
       if (cachedData && !forceRefresh) {
         setPosts(cachedData);
         setLoading(false);
@@ -30,7 +30,7 @@ const HomePage = () => {
       const response = await axios.get('/api/posts');
       const shuffledPosts = response.data.posts.sort(() => Math.random() - 0.5);
       setPosts(shuffledPosts);
-      setCache('homePosts', shuffledPosts, 5 * 60 * 1000); // Cache for 5 minutes
+      setCacheData('homePosts', shuffledPosts);
       setError(null);
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -43,7 +43,7 @@ const HomePage = () => {
   const fetchUserProfile = async (forceRefresh = false) => {
     try {
       // Check cache first
-      const cachedData = getCache('userProfile');
+      const cachedData = getCacheData('userProfile');
       if (cachedData && !forceRefresh) {
         setCurrentUserEmail(cachedData.email);
         return;
@@ -51,7 +51,7 @@ const HomePage = () => {
 
       const response = await axios.get('/api/auth/check');
       setCurrentUserEmail(response.data.user.email);
-      setCache('userProfile', response.data.user, 5 * 60 * 1000); // Cache for 5 minutes
+      setCacheData('userProfile', response.data.user);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       setCurrentUserEmail(null);
@@ -88,7 +88,7 @@ const HomePage = () => {
   const handlePostDeleted = (deletedPostId) => {
     setPosts(prevPosts => {
       const newPosts = prevPosts.filter(post => post.id !== deletedPostId);
-      setCache('homePosts', newPosts, 5 * 60 * 1000); // Update cache
+      setCacheData('homePosts', newPosts);
       return newPosts;
     });
   };
@@ -98,7 +98,7 @@ const HomePage = () => {
       const newPosts = prevPosts.map(post => 
         post.id === updatedPost._id ? { ...post, content: updatedPost.body } : post
       );
-      setCache('homePosts', newPosts, 5 * 60 * 1000); // Update cache
+      setCacheData('homePosts', newPosts);
       return newPosts;
     });
   };

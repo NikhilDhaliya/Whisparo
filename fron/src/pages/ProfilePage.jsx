@@ -18,12 +18,12 @@ const ProfilePage = () => {
   const [editingPost, setEditingPost] = useState(null);
   const [editContent, setEditContent] = useState('');
   const [showComments, setShowComments] = useState(null);
-  const { getCache, setCache, clearCache } = useCache();
+  const { getCacheData, setCacheData, clearCache } = useCache();
 
   const fetchUserData = async (forceRefresh = false) => {
     try {
       // Check cache first
-      const cachedData = getCache('userProfile');
+      const cachedData = getCacheData('userProfile');
       if (cachedData && !forceRefresh) {
         setUser(cachedData);
         return cachedData;
@@ -31,7 +31,7 @@ const ProfilePage = () => {
 
       const response = await axios.get('/api/auth/check');
       setUser(response.data.user);
-      setCache('userProfile', response.data.user, 5 * 60 * 1000); // Cache for 5 minutes
+      setCacheData('userProfile', response.data.user);
       return response.data.user;
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -43,7 +43,7 @@ const ProfilePage = () => {
   const fetchUserPosts = async (forceRefresh = false) => {
     try {
       // Check cache first
-      const cachedData = getCache('userPosts');
+      const cachedData = getCacheData('userPosts');
       if (cachedData && !forceRefresh) {
         setPosts(cachedData);
         return;
@@ -51,7 +51,7 @@ const ProfilePage = () => {
 
       const response = await axios.get('/api/posts/user');
       setPosts(response.data.posts);
-      setCache('userPosts', response.data.posts, 5 * 60 * 1000); // Cache for 5 minutes
+      setCacheData('userPosts', response.data.posts);
     } catch (error) {
       console.error('Error fetching user posts:', error);
       setError('Failed to load posts');
@@ -104,9 +104,9 @@ const ProfilePage = () => {
       ));
 
       // Update cache
-      setCache('userPosts', posts.map(post => 
+      setCacheData('userPosts', posts.map(post => 
         post._id === editingPost._id ? { ...post, body: editContent } : post
-      ), 5 * 60 * 1000);
+      ));
 
       setEditingPost(null);
       setEditContent('');
@@ -123,7 +123,7 @@ const ProfilePage = () => {
       setPosts(posts.filter(post => post._id !== postId));
       
       // Update cache
-      setCache('userPosts', posts.filter(post => post._id !== postId), 5 * 60 * 1000);
+      setCacheData('userPosts', posts.filter(post => post._id !== postId));
       toast.success('Post deleted successfully');
     } catch (error) {
       console.error('Error deleting post:', error);
@@ -146,188 +146,116 @@ const ProfilePage = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-red-500 text-xl">{error}</div>
+        <div className="text-red-500 bg-red-50 p-4 rounded-xl">
+          {error}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-          {/* Profile Header */}
-        <div className="bg-white shadow-xl rounded-2xl p-4 sm:p-8 mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold">
-                {user?.email?.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{user?.username || 'Anonymous'}</h1>
-                <p className="text-sm sm:text-base text-gray-500 break-all">{user?.email}</p>
-              </div>
-            </div>
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-              className={`flex items-center justify-center space-x-2 px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 w-full sm:w-auto ${
-                  isLoggingOut
-                    ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-red-600 hover:bg-red-700 hover:shadow-lg'
-                }`}
-              >
-              {isLoggingOut ? (
-                <FaSpinner className="animate-spin" />
+    <div className="min-h-screen bg-gray-50">
+      {/* iOS-style Navigation Bar */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-semibold text-gray-900">Profile</h1>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Content */}
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">{user?.name}</h2>
+          <p className="text-gray-600">{user?.email}</p>
+        </div>
+
+        <div className="space-y-4">
+          {posts.map(post => (
+            <motion.div
+              key={post._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-2xl shadow-sm p-6"
+            >
+              {editingPost?._id === post._id ? (
+                <div className="space-y-4">
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows="3"
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={() => setEditingPost(null)}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleUpdate}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <>
-                <FaSignOutAlt />
-                  <span>Logout</span>
+                  <p className="text-gray-900 mb-4">{post.body}</p>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-4">
+                      <span className="text-gray-500 text-sm">
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </span>
+                      <button
+                        onClick={() => toggleComments(post._id)}
+                        className="text-blue-500 hover:text-blue-600"
+                      >
+                        {post.comments?.length || 0} Comments
+                      </button>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEdit(post)}
+                        className="text-gray-600 hover:text-gray-900"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(post._id)}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
                 </>
               )}
-              </button>
-            </div>
-          </div>
 
-        {/* Posts Section */}
-        <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
-          <div className="p-4 sm:p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Your Posts</h2>
-              </div>
-
-          <div className="p-4 sm:p-6">
-            <div className="space-y-4 sm:space-y-6">
-              {posts.length === 0 ? (
-                <div className="text-center py-8 sm:py-12">
-                  <p className="text-base sm:text-lg text-gray-500">No posts yet</p>
-                  <button
-                    onClick={() => navigate('/create')}
-                    className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm sm:text-base"
+              {/* Comments Section */}
+              <AnimatePresence>
+                {showComments === post._id && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-4 pt-4 border-t border-gray-100"
                   >
-                    Create Your First Post
-                  </button>
-              </div>
-                    ) : (
-                      posts.map((post) => (
-                        <motion.div
-                          key={post._id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-lg transition-shadow"
-                        >
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
-                            <div className="flex-1">
-                              {editingPost?._id === post._id ? (
-                                <div className="space-y-4">
-                                  <textarea
-                                    value={editContent}
-                                    onChange={(e) => setEditContent(e.target.value)}
-                                    className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm sm:text-base"
-                                    rows="4"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="space-y-4">
-                                  <p className="text-gray-800 text-base sm:text-lg break-words">{post.body}</p>
-                                  {post.image?.url && (
-                                    <div className="mt-2">
-                                      <img
-                                        src={post.image.url}
-                                        alt="Post attachment"
-                                        className="max-h-96 w-full object-contain rounded-lg"
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              
-                              <div className="mt-4 flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-500">
-                                <span className="flex items-center space-x-1">
-                                  <FaThumbsUp />
-                                  <span>{post.likes || 0}</span>
-                                </span>
-                                <span className="flex items-center space-x-1">
-                                  <FaComment />
-                                  <span>{post.commentsCount || 0}</span>
-                                </span>
-                                <span>
-                                  {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center justify-end sm:justify-start space-x-2 sm:ml-4">
-                              {editingPost?._id === post._id ? (
-                                <>
-                                  <button
-                                    onClick={handleUpdate}
-                                    disabled={!editContent.trim()}
-                                    className={`p-2 rounded-lg ${
-                                      !editContent.trim()
-                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                        : 'bg-green-100 text-green-600 hover:bg-green-200'
-                                    }`}
-                                  >
-                                    <FaSave />
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingPost(null)}
-                                    className="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                  >
-                                    <FaTimes />
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <button 
-                                    onClick={() => handleEdit(post)}
-                                    className="p-2 rounded-lg text-gray-600 hover:bg-gray-100"
-                                  >
-                                    <FaEdit />
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDelete(post._id)}
-                                    className="p-2 rounded-lg text-gray-600 hover:bg-red-100 hover:text-red-600"
-                                  >
-                                    <FaTrash />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Comments Section */}
-                          <div className="mt-4">
-                            <button
-                              onClick={() => toggleComments(post._id)}
-                              className="flex items-center space-x-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
-                            >
-                              {showComments === post._id ? (
-                                <>
-                                  <FaChevronUp />
-                                  <span>Hide Comments</span>
-                                </>
-                              ) : (
-                                <>
-                                  <FaChevronDown />
-                                  <span>Show Comments</span>
-                                </>
-                              )}
-                            </button>
-                            
-                            {showComments === post._id && (
-                              <div className="mt-4">
-                                <CommentList 
-                                  postId={post._id} 
-                                  isOpen={true}
-                                  onClose={() => setShowComments(null)}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))
-                    )}
-            </div>
-          </div>
+                    <CommentList postId={post._id} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
         </div>
       </div>
     </div>
