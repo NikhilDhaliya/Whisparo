@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Avatar from '../common/Avatar';
 import CommentForm from './CommentForm';
 import { FaThumbsUp, FaReply, FaTimes } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Comment = ({ comment, postId, onCommentAdded }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -27,12 +28,16 @@ const Comment = ({ comment, postId, onCommentAdded }) => {
   };
 
   return (
-    <div className="mt-4 animate-fadeIn">
-      <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mt-4"
+    >
+      <div className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-2">
             <Avatar email={comment.authorEmail} />
-            <span className="font-medium">{comment.newUsername || 'Anonymous'}</span>
+            <span className="font-medium text-gray-900">{comment.newUsername || 'Anonymous'}</span>
           </div>
           <span className="text-gray-500 text-sm">
             {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
@@ -42,42 +47,51 @@ const Comment = ({ comment, postId, onCommentAdded }) => {
         <p className="mt-2 text-gray-700">{comment.body}</p>
         
         <div className="mt-3 flex gap-4">
-          <button
+          <motion.button
             onClick={handleVote}
             disabled={isVoting}
-            className={`flex items-center gap-1 transition-all duration-200 ${
+            whileTap={{ scale: 0.95 }}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-full transition-all duration-200 ${
               userVote === 'like' 
-                ? 'text-blue-500 scale-110' 
-                : 'text-gray-600 hover:text-blue-500 hover:scale-105'
+                ? 'bg-blue-50 text-blue-600' 
+                : 'text-gray-600 hover:bg-gray-100'
             } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <FaThumbsUp className="transition-transform duration-200" />
             <span className="text-sm font-medium">{likes}</span>
-          </button>
+          </motion.button>
           
-          <button
+          <motion.button
             onClick={() => setShowReplyForm(!showReplyForm)}
-            className="flex items-center gap-1 text-gray-600 hover:text-blue-500 transition-colors duration-200"
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all duration-200"
           >
-            <FaReply className="hover:scale-110 transition-transform duration-200" />
+            <FaReply />
             <span className="text-sm">Reply</span>
-          </button>
+          </motion.button>
         </div>
 
-        {showReplyForm && (
-          <div className="mt-3 animate-slideDown">
-            <CommentForm
-              postId={postId}
-              parentCommentId={comment._id}
-              onCommentAdded={(newComment) => {
-                setShowReplyForm(false);
-                if (onCommentAdded) {
-                  onCommentAdded(newComment);
-                }
-              }}
-            />
-          </div>
-        )}
+        <AnimatePresence>
+          {showReplyForm && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-3 overflow-hidden"
+            >
+              <CommentForm
+                postId={postId}
+                parentCommentId={comment._id}
+                onCommentAdded={(newComment) => {
+                  setShowReplyForm(false);
+                  if (onCommentAdded) {
+                    onCommentAdded(newComment);
+                  }
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {comment.replies && comment.replies.length > 0 && (
@@ -92,7 +106,7 @@ const Comment = ({ comment, postId, onCommentAdded }) => {
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 
@@ -100,14 +114,13 @@ const CommentList = ({ postId, isOpen, onClose }) => {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isClosing, setIsClosing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
   const fetchComments = async (page) => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/comments/posts/${postId}?page=${page}&limit=5`); // Request 5 comments per page
+      const response = await axios.get(`/api/comments/posts/${postId}?page=${page}&limit=5`);
       setComments(prevComments => page === 1 ? response.data.comments : [...prevComments, ...response.data.comments]);
       setHasMore(response.data.hasMore);
       setError(null);
@@ -121,25 +134,14 @@ const CommentList = ({ postId, isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      setCurrentPage(1); // Reset to first page when modal opens
-      setComments([]); // Clear previous comments
-      setHasMore(true); // Assume more comments until proven otherwise
+      setCurrentPage(1);
+      setComments([]);
+      setHasMore(true);
       fetchComments(1);
     }
   }, [postId, isOpen]);
 
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
-      onClose();
-    }, 300); // Match this with the animation duration
-  };
-
   const handleCommentAdded = (newComment) => {
-    // Option 1: Prepend new comment (simple, but might not fit strict pagination order)
-    // setComments(prevComments => [newComment, ...prevComments]);
-    // Option 2: Re-fetch the first page (ensures correct order, less efficient)
     fetchComments(1);
   };
 
@@ -148,81 +150,92 @@ const CommentList = ({ postId, isOpen, onClose }) => {
     fetchComments(currentPage + 1);
   };
 
-  if (!isOpen && !isClosing) return null;
-
   return (
-    <div 
-      className={`fixed inset-0 flex items-center justify-center z-50 transition-opacity duration-300 ${
-        isClosing ? 'opacity-0' : 'opacity-100'
-      }`}
-      onClick={handleClose}
-    >
-      <div 
-        className={`bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col transform transition-all duration-300 ${
-          isClosing ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
-        }`}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="p-4 border-b bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-xl">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-white">Comments</h3>
-            <button
-              onClick={handleClose}
-              className="text-white hover:text-gray-200 transition-colors p-2 rounded-full hover:bg-white/10"
-            >
-              <FaTimes className="text-xl" />
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-          {loading && comments.length === 0 ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          ) : error ? (
-            <div className="text-red-500 text-center py-4 bg-red-50 rounded-lg">
-              {error}
-            </div>
-          ) : (
-            <>
-              <CommentForm postId={postId} onCommentAdded={handleCommentAdded} />
-              <div className="mt-6 space-y-4">
-                {comments.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    No comments yet. Be the first to comment!
-                  </div>
-                ) : (
-                  comments.map((comment) => (
-                    <Comment
-                      key={comment._id}
-                      comment={comment}
-                      postId={postId}
-                      onCommentAdded={handleCommentAdded}
-                    />
-                  ))
-                )}
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[80vh] overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200">
+              <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">Comments</h3>
+                <motion.button
+                  onClick={onClose}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <FaTimes />
+                </motion.button>
               </div>
-              {hasMore && (
-                <div className="text-center mt-4">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={loading} // Disable button while loading
-                    className={`px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 ${
-                      loading ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {loading ? 'Loading...' : 'Load More'}
-                  </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+              {loading && comments.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
+              ) : error ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-center py-4 bg-red-50 rounded-xl"
+                >
+                  {error}
+                </motion.div>
+              ) : (
+                <>
+                  <CommentForm postId={postId} onCommentAdded={handleCommentAdded} />
+                  <div className="mt-6 space-y-4">
+                    {comments.length === 0 ? (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center py-8 text-gray-500"
+                      >
+                        No comments yet. Be the first to comment!
+                      </motion.div>
+                    ) : (
+                      comments.map((comment) => (
+                        <Comment
+                          key={comment._id}
+                          comment={comment}
+                          postId={postId}
+                          onCommentAdded={handleCommentAdded}
+                        />
+                      ))
+                    )}
+                  </div>
+                  {hasMore && (
+                    <motion.button
+                      onClick={handleLoadMore}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-full mt-4 py-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                    >
+                      Load More
+                    </motion.button>
+                  )}
+                </>
               )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
