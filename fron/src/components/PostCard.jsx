@@ -21,25 +21,32 @@ const PostCard = ({ post, onVote, onComment }) => {
   };
 
   const handleComment = (postId) => {
-    setShowComments(!showComments);
+    setShowComments(prev => !prev);
     if (onComment) {
       onComment(postId);
     }
   };
+
+  const handleCloseComments = () => {
+    setShowComments(false);
+  };
+
+  // Get the username from either newUsername or authorUsername
+  const displayUsername = post.newUsername || post.authorUsername || 'Anonymous';
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-start space-x-4">
         <div className="flex-shrink-0">
           <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-            {post.newUsername?.charAt(0).toUpperCase() || 'A'}
+            {displayUsername.charAt(0).toUpperCase()}
           </div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-900">
-                {post.newUsername || 'Anonymous'}
+                {displayUsername}
               </p>
               <p className="text-sm text-gray-500">
                 {new Date(post.createdAt).toLocaleDateString()}
@@ -84,7 +91,7 @@ const PostCard = ({ post, onVote, onComment }) => {
           </div>
 
           {/* Comments Section */}
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {showComments && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
@@ -93,7 +100,11 @@ const PostCard = ({ post, onVote, onComment }) => {
                 transition={{ duration: 0.2 }}
                 className="mt-4 pt-4 border-t border-gray-100"
               >
-                <CommentList postId={post._id} />
+                <CommentList 
+                  postId={post._id} 
+                  isOpen={showComments}
+                  onClose={handleCloseComments}
+                />
               </motion.div>
             )}
           </AnimatePresence>
