@@ -1,10 +1,10 @@
 /* eslint-disable no-unused-vars */
 import { useState } from 'react';
-import { FaThumbsUp, FaComment } from 'react-icons/fa';
+import { FaThumbsUp, FaComment, FaEdit, FaTrash } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommentList from './comments/CommentList';
 
-const PostCard = ({ post, onVote, onComment }) => {
+const PostCard = ({ post, onVote, onComment, onEdit, onDelete, isProfilePage = false }) => {
   const [showComments, setShowComments] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
 
@@ -21,7 +21,7 @@ const PostCard = ({ post, onVote, onComment }) => {
   };
 
   const handleComment = (postId) => {
-    setShowComments(prev => !prev);
+    setShowComments(true);
     if (onComment) {
       onComment(postId);
     }
@@ -52,9 +52,27 @@ const PostCard = ({ post, onVote, onComment }) => {
                 {new Date(post.createdAt).toLocaleDateString()}
               </p>
             </div>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {post.category}
-            </span>
+            <div className="flex items-center space-x-2">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {post.category}
+              </span>
+              {isProfilePage && (
+                <>
+                  <button
+                    onClick={() => onEdit(post)}
+                    className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+                  >
+                    <FaEdit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onDelete(post._id)}
+                    className="p-1 text-gray-500 hover:text-red-600 transition-colors"
+                  >
+                    <FaTrash className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
           <p className="mt-2 text-gray-700 whitespace-pre-wrap">{post.body}</p>
           {post.image?.url && (
@@ -89,27 +107,19 @@ const PostCard = ({ post, onVote, onComment }) => {
               <span>{post.comments?.length || 0}</span>
             </button>
           </div>
-
-          {/* Comments Section */}
-          <AnimatePresence mode="wait">
-            {showComments && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="mt-4 pt-4 border-t border-gray-100"
-              >
-                <CommentList 
-                  postId={post._id} 
-                  isOpen={showComments}
-                  onClose={handleCloseComments}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
+
+      {/* Comments Modal */}
+      <AnimatePresence>
+        {showComments && (
+          <CommentList 
+            postId={post._id} 
+            isOpen={showComments}
+            onClose={handleCloseComments}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -31,13 +31,14 @@ const ProfilePage = () => {
         return cachedData;
       }
 
-      const response = await axios.get('/api/auth/check');
-      setUser(response.data.user);
-      setCacheData('userProfile', response.data.user);
-      return response.data.user;
+      const response = await axios.get('/api/users/me');
+      setUser(response.data);
+      setCacheData('userProfile', response.data);
+      return response.data;
     } catch (error) {
       console.error('Error fetching user data:', error);
       setError('Failed to load user data');
+      setLoading(false);
       return null;
     }
   };
@@ -59,6 +60,8 @@ const ProfilePage = () => {
     } catch (error) {
       console.error('Error fetching user posts:', error);
       setError('Failed to load posts');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -128,6 +131,8 @@ const ProfilePage = () => {
   };
 
   const handleDelete = async (postId) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    
     try {
       await axios.delete(`/api/posts/${postId}`);
       setPosts(posts.filter(post => post._id !== postId));
@@ -143,17 +148,14 @@ const ProfilePage = () => {
 
   const handleVote = async (postId, voteType) => {
     try {
-      // Only handle upvotes
-      if (voteType !== 'upvote') return;
-      
       const response = await axios.post(`/api/posts/${postId}/vote`, { voteType });
       setPosts(posts.map(post => 
-        post._id === postId ? { ...post, ...response.data } : post
+        post._id === postId ? { ...post, ...response.data.post } : post
       ));
       
       // Update cache
       setCacheData('userPosts', posts.map(post => 
-        post._id === postId ? { ...post, ...response.data } : post
+        post._id === postId ? { ...post, ...response.data.post } : post
       ));
     } catch (error) {
       console.error('Error voting:', error);
@@ -227,6 +229,9 @@ const ProfilePage = () => {
               post={post}
               onVote={handleVote}
               onComment={handleComment}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              isProfilePage={true}
             />
           ))}
         </div>
