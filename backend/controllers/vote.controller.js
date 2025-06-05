@@ -3,12 +3,6 @@ import User from '../models/user.js'; // Assuming you have a User model
 
 // Controller to handle voting on a post (like)
 const votePost = async (req, res) => {
-  // Log incoming request
-  console.log(`[Vote Controller] votePost: Incoming ${req.method} request to ${req.originalUrl}`);
-  console.log('Request body:', req.body);
-  console.log('Request params:', req.params);
-  console.log('Authenticated user:', req.user);
-
   const { id } = req.params; // Post ID
   const userEmail = req.user.email; // Authenticated user email from authMiddleware
 
@@ -47,18 +41,12 @@ const votePost = async (req, res) => {
       voteType: userVoteStatus,
     });
   } catch (error) {
-    console.error('Error processing vote:', error);
     res.status(500).json({ message: 'Failed to process vote' });
   }
 };
 
 // Controller to get user's vote status for a specific post
 const getVoteStatus = async (req, res) => {
-    // Log incoming request
-    console.log(`[Vote Controller] getVoteStatus: Incoming ${req.method} request to ${req.originalUrl}`);
-    console.log('Request params:', req.params);
-    console.log('Authenticated user:', req.user);
-
     const { id } = req.params; // Post ID
     const userEmail = req.user.email; // Authenticated user email from authMiddleware
 
@@ -75,7 +63,6 @@ const getVoteStatus = async (req, res) => {
         res.status(200).json({ voteType: userVoteStatus });
 
     } catch (error) {
-        console.error('Error fetching vote status:', error);
         res.status(500).json({ message: 'Failed to fetch vote status' });
     }
 };

@@ -8,9 +8,11 @@ const Signup = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    otp: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showOTPInput, setShowOTPInput] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -35,17 +37,36 @@ const Signup = () => {
 
     try {
       setIsLoading(true);
-      const response = await axios.post('/api/auth/register', {
-        email: formData.email,
-        password: formData.password
-      });
+      
+      if (!showOTPInput) {
+        // Step 1: Request OTP
+        await axios.post('/api/otp/generate', {
+          email: formData.email
+        });
+        setShowOTPInput(true);
+        toast.success('OTP sent to your email!');
+      } else {
+        // Step 2: Verify OTP
+        const verifyResponse = await axios.post('/api/otp/verify', {
+          email: formData.email,
+          otp: formData.otp
+        });
 
-      if (response.data.token) {
-        toast.success('Account created successfully!');
-        navigate('/login');
+        if (verifyResponse.data.verified) {
+          // Step 3: Complete registration
+          const response = await axios.post('/api/auth/register', {
+            email: formData.email,
+            password: formData.password
+          });
+
+          if (response.data.token) {
+            toast.success('Account created successfully!');
+            navigate('/login');
+          }
+        }
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to create account');
+      toast.error(error.response?.data?.message || 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
@@ -84,46 +105,72 @@ const Signup = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  disabled={showOTPInput}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100"
                 />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
-              </div>
-            </div>
+            {!showOTPInput ? (
+              <>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Password
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                    Confirm Password
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label htmlFor="otp" className="block text-sm font-medium text-gray-700">
+                  Enter Verification Code
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="otp"
+                    name="otp"
+                    type="text"
+                    required
+                    value={formData.otp}
+                    onChange={handleChange}
+                    placeholder="Enter 6-digit code"
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
+                <p className="mt-2 text-sm text-gray-500">
+                  We've sent a verification code to your email
+                </p>
               </div>
-            </div>
+            )}
 
             <div>
               <button
@@ -136,10 +183,10 @@ const Signup = () => {
                 {isLoading ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating account...
+                    {showOTPInput ? 'Verifying...' : 'Sending code...'}
                   </div>
                 ) : (
-                  'Sign up'
+                  showOTPInput ? 'Verify & Create Account' : 'Send Verification Code'
                 )}
               </button>
             </div>

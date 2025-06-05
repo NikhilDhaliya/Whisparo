@@ -5,6 +5,7 @@ import connectDB from '../backend/config/db.js';
 import userRouter from './routes/user.routes.js';
 import postRouter from './routes/post.routes.js';
 import commentRouter from './routes/comment.routes.js';
+import otpRouter from './routes/otp.routes.js';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -28,7 +29,8 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', userRouter);
 app.use('/api/posts', postRouter);
-app.use('/api/comments', commentRouter); // Changed from /api to /api/comments
+app.use('/api/comments', commentRouter);
+app.use('/api/otp', otpRouter);
 
 app.listen(5000, () => {
     connectDB();

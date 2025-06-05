@@ -17,10 +17,8 @@ const HomePage = () => {
       // Shuffle the posts array randomly
       const shuffledPosts = response.data.posts.sort(() => Math.random() - 0.5);
       setPosts(shuffledPosts);
-      console.log('Fetched and shuffled posts:', shuffledPosts);
       setError(null);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
+    } catch {
       setError('Failed to load posts.');
     } finally {
       setLoading(false);
@@ -31,8 +29,7 @@ const HomePage = () => {
     try {
       const response = await axios.get('/api/auth/check');
       setCurrentUserEmail(response.data.user.email);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
+    } catch {
       setCurrentUserEmail(null);
     }
   };
