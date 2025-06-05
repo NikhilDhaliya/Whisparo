@@ -7,18 +7,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import CommentList from '../components/comments/CommentList';
 import { useCache } from '../context/CacheContext';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const HomePage = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeCommentPost, setActiveCommentPost] = useState(null);
   const containerRef = useRef(null);
   const { getCacheData, setCacheData } = useCache();
   const location = useLocation();
+  const { user: authUser } = useAuth();
 
   const fetchPosts = async () => {
     try {
@@ -35,7 +36,7 @@ const HomePage = () => {
       // Sort posts by creation date, newest first
       const sortedPosts = response.data.posts.map(post => ({
         ...post,
-        username: post.newUsername || post.authorUsername || 'Anonymous'
+        username: post.authorEmail === authUser?.email ? authUser?.username : (post.newUsername || post.authorUsername || 'Anonymous')
       })).sort((a, b) => 
         new Date(b.createdAt) - new Date(a.createdAt)
       );
@@ -50,32 +51,13 @@ const HomePage = () => {
     }
   };
 
-  const fetchUserProfile = async () => {
-    try {
-      // Check cache first
-      const cachedUser = getCacheData('user_profile');
-      if (cachedUser) {
-        setCurrentUserEmail(cachedUser.email);
-        return;
-      }
-
-      const response = await axios.get('/api/auth/check');
-      setCurrentUserEmail(response.data.user.email);
-      // Cache the user profile
-      setCacheData('user_profile', response.data.user);
-    } catch {
-      setCurrentUserEmail(null);
-    }
-  };
-
   useEffect(() => {
-    fetchUserProfile();
     fetchPosts();
     // Clear the refresh state after handling it
     if (location.state?.refresh) {
       window.history.replaceState({}, document.title);
     }
-  }, [refreshTrigger, location.state?.refresh]);
+  }, [refreshTrigger, location.state?.refresh, authUser]);
 
   const handleRefresh = async () => {
     if (loading || isRefreshing) return;
@@ -156,7 +138,7 @@ const HomePage = () => {
             ) : (
               <PostList
                 posts={posts}
-                currentUserEmail={currentUserEmail}
+                currentUserEmail={authUser?.email}
                 onPostDeleted={handlePostDeleted}
                 onPostUpdated={handlePostUpdated}
                 onCommentClick={handleCommentClick}

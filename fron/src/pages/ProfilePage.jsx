@@ -38,6 +38,17 @@ const ProfilePage = () => {
       }
 
       try {
+        // Check cache first
+        const cachedPosts = getCacheData(`user_posts_${authUser.email}`);
+        const cachedComments = getCacheData(`user_comments_${authUser.email}`);
+
+        if (cachedPosts && cachedComments) {
+          setUserPosts(cachedPosts);
+          setUserComments(cachedComments);
+          setLoading(false);
+          return;
+        }
+
         // Fetch posts and comments using the user's email
         const [postsRes, commentsRes] = await Promise.all([
           axios.get('/api/posts?authorEmail=' + encodeURIComponent(authUser.email)),
@@ -46,7 +57,7 @@ const ProfilePage = () => {
 
         const postsWithUsernames = postsRes.data.posts.map(post => ({
           ...post,
-          username: post.newUsername || post.authorUsername || 'Anonymous'
+          username: authUser.username || 'Anonymous'
         }));
         setUserPosts(postsWithUsernames);
         setCacheData(`user_posts_${authUser.email}`, postsWithUsernames);
