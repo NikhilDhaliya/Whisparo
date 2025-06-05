@@ -40,8 +40,8 @@ const ProfilePage = () => {
       try {
         // Fetch posts and comments using the user's email
         const [postsRes, commentsRes] = await Promise.all([
-          axios.get('/posts?authorEmail=' + encodeURIComponent(authUser.email)),
-          axios.get('/comments/user')
+          axios.get('/api/posts?authorEmail=' + encodeURIComponent(authUser.email)),
+          axios.get('/api/comments/user')
         ]);
 
         const postsWithUsernames = postsRes.data.posts.map(post => ({
