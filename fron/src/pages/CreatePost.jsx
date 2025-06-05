@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -9,7 +10,6 @@ const CreatePost = () => {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -26,12 +26,11 @@ const CreatePost = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!content.trim() || !category) {
-      setError('Please fill in all required fields');
+      toast.error('Please fill in all required fields');
       return;
     }
 
     setLoading(true);
-    setError(null);
 
     try {
       const formData = new FormData();
@@ -47,10 +46,10 @@ const CreatePost = () => {
         },
       });
 
+      toast.success('Post created successfully');
       navigate('/');
     } catch (err) {
-      console.error('Error creating post:', err);
-      setError(err.response?.data?.message || 'Failed to create post');
+      toast.error(err.response?.data?.message || 'Failed to create post');
     } finally {
       setLoading(false);
     }
@@ -61,12 +60,6 @@ const CreatePost = () => {
       <div className="max-w-2xl mx-auto">
         <div className="bg-white shadow rounded-lg p-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Create New Post</h1>
-          
-          {error && (
-            <div className="bg-red-50 text-red-500 p-3 rounded-md mb-4">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>

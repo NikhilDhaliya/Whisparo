@@ -5,6 +5,7 @@ import { FaThumbsUp, FaFlag, FaComment, FaEdit, FaTrash, FaSave, FaTimes } from 
 import { formatDistanceToNow } from 'date-fns'
 import axios from 'axios'
 import CommentList from '../comments/CommentList'
+import toast from 'react-hot-toast'
 
 const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
   const {
@@ -28,15 +29,13 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
   const [isSaving, setIsSaving] = useState(false);
 
   const handleVote = async () => {
-    if (isVoting) return; // Prevent multiple votes while processing
+    if (isVoting) return;
     
     try {
       setIsVoting(true);
       
-      // Optimistic update
       const previousVoteStatus = userVoteStatus;
       
-      // Update local state optimistically
       if (previousVoteStatus === 'like') {
         setLikes(prev => prev - 1);
         setUserVoteStatus(null);
@@ -45,13 +44,12 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
         setUserVoteStatus('like');
       }
 
-      // Make API call
       const response = await axios.post(`/api/posts/${postId}/vote`);
       setLikes(response.data.likes);
       setUserVoteStatus(response.data.voteType);
+      toast.success(previousVoteStatus === 'like' ? 'Vote removed' : 'Vote added');
     } catch (error) {
-      console.error('Error voting:', error);
-      // Revert optimistic update on error
+      toast.error('Failed to process vote');
       setUserVoteStatus(null);
       setLikes(initialLikes || 0);
     } finally {
@@ -75,8 +73,9 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
   const handleReport = async () => {
     try {
       await axios.post(`/api/posts/${postId}/report`);
+      toast.success('Post reported successfully');
     } catch (error) {
-      console.error('Error reporting post:', error);
+      toast.error('Failed to report post');
     }
   };
 
@@ -87,11 +86,12 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
     try {
       setIsDeleting(true);
       await axios.delete(`/api/posts/${postId}`);
+      toast.success('Post deleted successfully');
       if (onPostDeleted) {
         onPostDeleted(postId);
       }
     } catch (error) {
-      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
       setIsDeleting(false);
     }
   };
@@ -107,7 +107,6 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
   };
 
   const handleUpdate = async () => {
-    console.log('handleUpdate called');
     if (editedContent.trim() === content.trim() || !editedContent.trim()) {
       setIsEditing(false);
       return;
@@ -115,25 +114,13 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
     try {
       setIsSaving(true);
       const response = await axios.put(`/api/posts/${postId}`, { body: editedContent });
-      // Call the onPostUpdated callback with the updated post data
-      console.log('Backend update response data:', response.data);
+      toast.success('Post updated successfully');
       if (onPostUpdated) {
-        onPostUpdated(response.data.post); // Assuming the backend returns the updated post
+        onPostUpdated(response.data.post);
       }
       setIsEditing(false);
     } catch (error) {
-      console.error('Error updating post:', error);
-      // Log the full error response if available
-      if (error.response) {
-        console.error('Error response data:', error.response.data);
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.error('Error request:', error.request);
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.error('Error message:', error.message);
-      }
-      // Optionally show a user-friendly error message here
+      toast.error('Failed to update post');
     } finally {
       setIsSaving(false);
     }
