@@ -17,7 +17,7 @@ const cookieOptions = {
 
 const usernameCookieOptions = {
     httpOnly: true,
-    maxAge: 30 * 60 * 1000, // 30 minutes
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days to match auth token
     secure: false,
     sameSite: 'Lax'
 };
@@ -100,23 +100,16 @@ export const loginUser = async (req, res) => {
         existingUser.isLoggedIn = true;
         await existingUser.save();
 
-        // Check if username cookie exists
-        const usernameCookie = req.cookies.username;
-        let username;
-        
-        if (usernameCookie) {
-            try {
-                const parsed = JSON.parse(usernameCookie);
-                username = parsed.username;
-            } catch (e) {
-                console.error('Error parsing username cookie:', e);
-                username = generateFriendlyUsername();
-                setUsernameCookie(res, username);
-            }
-        } else {
-            username = generateFriendlyUsername();
-            setUsernameCookie(res, username);
-        }
+        // Always generate a new username and set the cookie on successful login
+        const username = generateFriendlyUsername();
+        setUsernameCookie(res, username);
+            
+        // We don't need to update all user's posts with new username here 
+        // if we are only using the cookie for display purposes.
+        // await Post.updateMany(
+        //     { authorEmail: email },
+        //     { authorUsername: username }
+        // );
 
         res.status(200).cookie('auth', token, cookieOptions).json({
             user: {
@@ -163,9 +156,9 @@ export const checkAuth = async (req, res) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        // Check if username cookie exists
+        // Get username from cookie
         const usernameCookie = req.cookies.username;
-        let username;
+        let username = 'Anonymous'; // Default to Anonymous if no cookie or invalid
         
         if (usernameCookie) {
             try {
@@ -173,14 +166,8 @@ export const checkAuth = async (req, res) => {
                 username = parsed.username;
             } catch (e) {
                 console.error('Error parsing username cookie:', e);
-                // Generate new username if cookie is invalid
-                username = generateFriendlyUsername();
-                setUsernameCookie(res, username);
+                // Keep default Anonymous if cookie is invalid
             }
-        } else {
-            // Generate new username if no cookie exists
-            username = generateFriendlyUsername();
-            setUsernameCookie(res, username);
         }
 
         res.status(200).json({
