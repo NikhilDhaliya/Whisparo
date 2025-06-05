@@ -135,14 +135,14 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Avatar email={post?.authorEmail} />
+                <Avatar email={post?.authorEmail} />
             <div>
               <span className="font-medium text-gray-900">{post?.newUsername || 'Anonymous'}</span>
               <span className="block text-xs text-gray-500">
                 {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
               </span>
             </div>
-          </div>
+            </div>
           <span className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 rounded-full">
             {category}
           </span>
@@ -151,14 +151,14 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
 
       {/* Content */}
       <div className="p-4">
-        {isEditing ? (
-          <textarea
-            value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
+            {isEditing ? (
+              <textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
             className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            rows="4"
-          />
-        ) : (
+                rows="4"
+              />
+            ) : (
           <div className="space-y-4">
             <p className="text-gray-700 whitespace-pre-wrap">{content}</p>
             {post.image?.url && (
@@ -170,66 +170,66 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
                 />
               </div>
             )}
-          </div>
+        </div>
         )}
-      </div>
+            </div>
 
       {/* Actions */}
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <button 
-              onClick={handleVote}
-              disabled={isVoting}
+                  <button 
+                      onClick={handleVote}
+                      disabled={isVoting}
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-full transition-all duration-200 ${
-                userVoteStatus === 'like' 
+                        userVoteStatus === 'like' 
                   ? 'bg-blue-50 text-blue-600' 
                   : 'text-gray-600 hover:bg-gray-100'
-              } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
+                      } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
               <FaThumbsUp className={`${userVoteStatus === 'like' ? 'text-blue-600' : ''}`} />
-              <span className="text-sm font-medium">{likes}</span>
-            </button>
-            
-            <button 
-              onClick={() => setShowComments(true)}
+                      <span className="text-sm font-medium">{likes}</span>
+                  </button>
+                
+                  <button 
+                      onClick={() => setShowComments(true)}
               className="flex items-center space-x-1 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all duration-200"
-            >
+                  >
               <FaComment />
-              <span className="text-sm">{commentsCount || 0}</span>
-            </button>
+                      <span className="text-sm">{commentsCount || 0}</span>
+                  </button>
           </div>
 
           <div className="flex items-center space-x-2">
-            {isOwnedByUser && !isEditing && (
+                {isOwnedByUser && !isEditing && (
               <>
-                <button 
-                  onClick={handleEdit}
+                  <button 
+                      onClick={handleEdit}
                   className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
-                >
+                  >
                   <FaEdit />
-                </button>
-                <button 
-                  onClick={handleDelete}
-                  disabled={isDeleting}
+                  </button>
+                   <button 
+                      onClick={handleDelete}
+                      disabled={isDeleting}
                   className={`p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 ${
-                    isDeleting ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
+                        isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                  >
                   <FaTrash className={isDeleting ? 'animate-spin' : ''} />
-                </button>
+                  </button>
               </>
-            )}
+                )}
 
-            {isEditing && (
+                {isEditing && (
               <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleUpdate}
-                  disabled={!editedContent.trim() || isSaving}
+                    <button
+                      onClick={handleUpdate}
+                      disabled={!editedContent.trim() || isSaving}
                   className={`flex items-center space-x-1 px-3 py-1.5 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors ${
-                    !editedContent.trim() || isSaving ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
+                        !editedContent.trim() || isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
                   {isSaving ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
@@ -240,33 +240,33 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
                       <FaSave /> Save
                     </>
                   )}
-                </button>
-                <button
-                  onClick={handleCancelEdit}
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
                   className="flex items-center space-x-1 px-3 py-1.5 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors"
-                >
-                  <FaTimes /> Cancel
-                </button>
-              </div>
-            )}
+                    >
+                      <FaTimes /> Cancel
+                    </button>
+                  </div>
+                )}
 
-            {!isEditing && (
-              <button 
-                onClick={handleReport}
+                {!isEditing && (
+                   <button 
+                    onClick={handleReport}
                 className="p-2 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-all duration-200"
-              >
+                  >
                 <FaFlag />
-              </button>
-            )}
+                  </button>
+                )}
           </div>
+            </div>
         </div>
-      </div>
-      
-      <CommentList 
-        postId={postId} 
-        isOpen={showComments} 
-        onClose={() => setShowComments(false)} 
-      />
+        
+        <CommentList 
+            postId={postId} 
+            isOpen={showComments} 
+            onClose={() => setShowComments(false)} 
+        />
     </div>
   )
 }

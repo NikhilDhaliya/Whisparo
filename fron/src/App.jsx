@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import AppLayout from './components/layout/AppLayout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
+import Signup from './pages/Signup';
 import CreatePost from './pages/CreatePost';
 import ProfilePage from './pages/ProfilePage';
 import TrendingPage from './pages/TrendingPage';
@@ -56,6 +57,7 @@ const App = () => {
         />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<Signup />} />
           <Route path="/" element={
             <ProtectedRoute>
               <AppLayout />
