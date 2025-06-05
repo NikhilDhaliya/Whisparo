@@ -13,6 +13,8 @@ const Comment = ({ comment, postId, onCommentAdded, currentUserEmail }) => {
   const [userVote, setUserVote] = useState(comment.votes?.userVote || null);
   const [isVoting, setIsVoting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const initialRepliesToShow = 2;
 
   const handleVote = async () => {
     if (isVoting) return;
@@ -39,7 +41,7 @@ const Comment = ({ comment, postId, onCommentAdded, currentUserEmail }) => {
       await axios.delete(`/api/comments/${comment._id}`);
       toast.success('Comment deleted successfully');
       if (onCommentAdded) {
-        onCommentAdded(null, true); // Pass true to indicate deletion
+        onCommentAdded(null, true, comment._id);
       }
     } catch (error) {
       console.error('Error deleting comment:', error);
@@ -50,6 +52,9 @@ const Comment = ({ comment, postId, onCommentAdded, currentUserEmail }) => {
   };
 
   const isOwnedByUser = currentUserEmail && comment.authorEmail === currentUserEmail;
+  const hasReplies = comment.replies && comment.replies.length > 0;
+  const repliesToDisplay = showReplies ? comment.replies : (comment.replies?.slice(0, initialRepliesToShow) || []);
+  const remainingRepliesCount = hasReplies ? comment.replies.length - repliesToDisplay.length : 0;
 
   return (
     <motion.div 
@@ -134,9 +139,17 @@ const Comment = ({ comment, postId, onCommentAdded, currentUserEmail }) => {
         </AnimatePresence>
       </div>
 
-      {comment.replies && comment.replies.length > 0 && (
+      {hasReplies && (
         <div className="ml-4 sm:ml-8 mt-2">
-          {comment.replies.map((reply) => (
+          {!showReplies && remainingRepliesCount > 0 && (
+            <button 
+              className="text-blue-600 text-sm mb-2 hover:underline"
+              onClick={() => setShowReplies(true)}
+            >
+              View {remainingRepliesCount} more replies
+            </button>
+          )}
+          {repliesToDisplay.map((reply) => (
             <Comment
               key={reply._id}
               comment={reply}
@@ -145,6 +158,14 @@ const Comment = ({ comment, postId, onCommentAdded, currentUserEmail }) => {
               currentUserEmail={currentUserEmail}
             />
           ))}
+           {showReplies && (
+            <button 
+              className="text-blue-600 text-sm mt-2 hover:underline"
+              onClick={() => setShowReplies(false)}
+            >
+              Hide replies
+            </button>
+          )}
         </div>
       )}
     </motion.div>
@@ -202,26 +223,80 @@ const CommentList = ({ postId, isOpen, onClose }) => {
     };
   }, [postId, isOpen]);
 
-  const handleCommentAdded = (newComment, isDeleted = false) => {
+  const handleCommentAdded = (newComment, isDeleted = false, deletedCommentId = null) => {
     if (isDeleted) {
-      // Remove the deleted comment from the list
-      setComments(prevComments => 
-        prevComments.filter(comment => 
-          comment._id !== newComment && 
-          !comment.replies?.some(reply => reply._id === newComment)
-        )
-      );
-      // Update the comment count in the parent component
+      // Recursively find and remove the deleted comment/reply
+      const removeComment = (commentsList, id) => {
+        return commentsList.reduce((acc, comment) => {
+          if (comment._id === id) {
+            return acc; // Skip the deleted comment
+          }
+          if (comment.replies && comment.replies.length > 0) {
+            // Recursively filter replies
+            const updatedReplies = removeComment(comment.replies, id);
+            // Only include the comment if it still has replies or wasn't the target
+            if (comment._id !== id) { // Ensure we don't add the deleted comment itself
+                 acc.push({ ...comment, replies: updatedReplies });
+            }
+          } else {
+             // Only include the comment if it wasn't the target and has no replies (or replies were filtered out)
+             if (comment._id !== id) {
+               acc.push(comment);
+             }
+          }
+          return acc;
+        }, []);
+      };
+      setComments(prevComments => removeComment(prevComments, deletedCommentId));
+      
+      // Update the comment count in the parent component (PostCard)
+      // This part might need refinement depending on how comment count is managed.
+      // Currently, it decrements by 1 for any deletion, which might not be accurate for replies.
       if (onCommentAdded) {
-        onCommentAdded(null, true, newComment);
+        // We need to know if a top-level comment or a reply was deleted to update count correctly.
+        // For simplicity, let's assume for now that onCommentAdded in PostCard handles overall count updates.
+        // If a reply is deleted, the top-level comment's reply count *in the backend* will eventually be correct on re-fetch.
+        // A more real-time approach would involve the backend returning updated counts on delete.
+        // Let's just trigger the parent update for now, the count might be slightly off until refresh if it's a reply.
+         onCommentAdded(null, true, deletedCommentId); // Pass the ID of the deleted item
       }
+
     } else if (newComment) {
-      // Add the new comment at the beginning of the list
-      setComments(prevComments => [newComment, ...prevComments]);
+       // Find the parent comment and add the new reply, or add as a new top-level comment
+      const addComment = (commentsList, commentToAdd) => {
+         // If it's a top-level comment
+         if (!commentToAdd.parentCommentId) {
+           return [commentToAdd, ...commentsList];
+         }
+
+         // If it's a reply, find the parent
+         return commentsList.map(comment => {
+           if (comment._id === commentToAdd.parentCommentId) {
+             // Add the reply to the parent's replies array
+             // Ensure replies array exists
+             const updatedReplies = comment.replies ? [...comment.replies, commentToAdd] : [commentToAdd];
+             return { ...comment, replies: updatedReplies };
+           } else if (comment.replies && comment.replies.length > 0) {
+             // Recursively check replies
+             return { ...comment, replies: addComment(comment.replies, commentToAdd) };
+           }
+           return comment;
+         });
+      };
+
+      setComments(prevComments => addComment(prevComments, newComment));
+      
       // Update the comment count in the parent component
-      if (onCommentAdded) {
-        onCommentAdded(newComment);
-      }
+       if (onCommentAdded && !newComment.parentCommentId) {
+         // Only increment total count if it's a top-level comment
+         onCommentAdded(newComment); 
+       } else if (onCommentAdded && newComment.parentCommentId) {
+          // If a reply is added, the total comment count might not change 
+          // (depending on how you define total count - top-level only or all). 
+          // If it's total replies, backend should return updated count.
+          // For now, if it's a reply, we just update the state, count in PostCard might be off.
+           onCommentAdded(newComment); // Still call to trigger potential updates in PostCard if needed
+       }
     }
   };
 
