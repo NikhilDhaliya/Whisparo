@@ -109,6 +109,9 @@ export const getAllPosts = async (req, res) => {
     const postsWithCommentCounts = await Promise.all(posts.map(async post => {
       const commentsCount = await Comment.countDocuments({ postId: post._id });
       
+      // Get the username from the post's authorUsername field
+      const username = post.authorUsername || 'Anonymous';
+      
       return {
         id: post._id,
         body: post.body,
@@ -116,8 +119,8 @@ export const getAllPosts = async (req, res) => {
         category: post.category,
         authorEmail: post.authorEmail,
         createdAt: post.createdAt,
-        newUsername: post.authorUsername,
-        authorUsername: post.authorUsername,
+        newUsername: username,
+        authorUsername: username,
         likes: post.votes.upvotes.length,
         score: post.votes.score,
         image: post.image,
