@@ -17,7 +17,7 @@ const cookieOptions = {
 
 const usernameCookieOptions = {
     httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days instead of 30 minutes
+    maxAge: 30 * 60 * 1000, // 30 minutes
     secure: false,
     sameSite: 'Lax'
 };
@@ -157,18 +157,27 @@ export const checkAuth = async (req, res) => {
         // Check if username cookie exists and is valid
         const usernameCookie = req.cookies.username;
         let username;
+        let shouldUpdateUsername = false;
         
         if (usernameCookie) {
             try {
                 const parsed = JSON.parse(usernameCookie);
-                username = parsed.username;
+                const age = Date.now() - parsed.timestamp;
+                if (age < 30 * 60 * 1000) { // 30 minutes
+                    username = parsed.username;
+                } else {
+                    shouldUpdateUsername = true;
+                }
             } catch (e) {
                 console.error('Error parsing username cookie:', e);
+                shouldUpdateUsername = true;
             }
+        } else {
+            shouldUpdateUsername = true;
         }
 
-        // Only generate new username if none exists
-        if (!username) {
+        // Generate new username if needed
+        if (shouldUpdateUsername) {
             username = generateFriendlyUsername();
             setUsernameCookie(res, username);
             
