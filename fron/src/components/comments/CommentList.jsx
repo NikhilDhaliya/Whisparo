@@ -63,111 +63,112 @@ const Comment = ({ comment, postId, onCommentAdded, currentUserEmail }) => {
       transition={{ duration: 0.3 }}
       className="mt-4"
     >
-      <div className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-2">
-            <Avatar email={comment.authorEmail} />
-            <span className="font-medium text-gray-900">{comment.newUsername || 'Anonymous'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 text-sm">
-              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-            </span>
-            {isOwnedByUser && (
-              <motion.button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                whileTap={{ scale: 0.95 }}
-                className={`p-1.5 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-full transition-colors ${
-                  isDeleting ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                <FaTrash size={14} />
-              </motion.button>
-            )}
-          </div>
-        </div>
+      <div className="flex gap-2">
+        <Avatar email={comment.authorEmail} size="sm"/>
         
-        <p className="mt-2 text-gray-700">{comment.body}</p>
-        
-        <div className="mt-3 flex gap-4">
-          <motion.button
-            onClick={handleVote}
-            disabled={isVoting}
-            whileTap={{ scale: 0.95 }}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-full transition-all duration-200 ${
-              userVote === 'like' 
-                ? 'bg-blue-50 text-blue-600' 
-                : 'text-gray-600 hover:bg-gray-100'
-            } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <FaThumbsUp className="transition-transform duration-200" />
-            <span className="text-sm font-medium">{likes}</span>
-          </motion.button>
+        <div className="flex-1">
+          <div className="flex flex-col">
+             <div className="flex items-center gap-1">
+                <span className="font-semibold text-gray-900 text-sm">{comment.newUsername || 'Anonymous'}</span>
+                <span className="text-gray-500 text-xs">{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</span>
+            </div>
+            <p className="text-gray-700 text-sm mt-1 whitespace-pre-wrap">{comment.body}</p>
+          </div>
           
-          <motion.button
-            onClick={() => setShowReplyForm(!showReplyForm)}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all duration-200"
-          >
-            <FaReply />
-            <span className="text-sm">Reply</span>
-          </motion.button>
+          <div className="mt-1 flex items-center gap-3">
+             <motion.button
+                onClick={handleVote}
+                disabled={isVoting}
+                whileTap={{ scale: 0.95 }}
+                className={`flex items-center gap-1 text-xs transition-colors duration-200 ${
+                  userVote === 'like' 
+                    ? 'text-blue-600 font-semibold' 
+                    : 'text-gray-600 hover:text-blue-500'
+                } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <FaThumbsUp size={12} className="transition-transform duration-200" />
+                <span>{likes > 0 ? likes : ''}</span>
+              </motion.button>
+              
+              <motion.button
+                onClick={() => setShowReplyForm(!showReplyForm)}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-1 text-gray-600 text-xs hover:text-blue-500 transition-colors duration-200"
+              >
+                <FaReply size={12} />
+                <span>Reply</span>
+              </motion.button>
+
+               {isOwnedByUser && (
+                  <motion.button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    whileTap={{ scale: 0.95 }}
+                    className={`p-0 text-gray-600 hover:text-red-600 transition-colors ${
+                      isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <FaTrash size={12} />
+                  </motion.button>
+                )}
+          </div>
+
+           <AnimatePresence>
+              {showReplyForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-3 overflow-hidden pr-4"
+                >
+                  <CommentForm
+                    postId={postId}
+                    parentCommentId={comment._id}
+                    onCommentAdded={(newComment) => {
+                      setShowReplyForm(false);
+                       if (onCommentAdded) {
+                          onCommentAdded(newComment); 
+                       }
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+          {hasReplies && (
+            <div className="mt-3">
+              {!showReplies && remainingRepliesCount > 0 && (
+                <button 
+                  className="text-blue-600 text-xs mb-2 hover:underline font-semibold"
+                  onClick={() => setShowReplies(true)}
+                >
+                  —— View {remainingRepliesCount} more replies
+                </button>
+              )}
+              {repliesToDisplay.map((reply) => (
+                <Comment
+                  key={reply._id}
+                  comment={{...reply, newUsername: reply.authorUsername}}
+                  postId={postId}
+                  onCommentAdded={onCommentAdded}
+                  currentUserEmail={currentUserEmail}
+                />
+              ))}
+               {showReplies && (
+                <button 
+                  className="text-blue-600 text-xs mt-2 hover:underline font-semibold"
+                  onClick={() => setShowReplies(false)}
+                >
+                   —— Hide replies
+                </button>
+              )}
+            </div>
+          )}
+
         </div>
 
-        <AnimatePresence>
-          {showReplyForm && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="mt-3 overflow-hidden"
-            >
-              <CommentForm
-                postId={postId}
-                parentCommentId={comment._id}
-                onCommentAdded={(newComment) => {
-                  setShowReplyForm(false);
-                  if (onCommentAdded) {
-                    onCommentAdded(newComment);
-                  }
-                }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
-
-      {hasReplies && (
-        <div className="ml-4 sm:ml-8 mt-2">
-          {!showReplies && remainingRepliesCount > 0 && (
-            <button 
-              className="text-blue-600 text-sm mb-2 hover:underline"
-              onClick={() => setShowReplies(true)}
-            >
-              View {remainingRepliesCount} more replies
-            </button>
-          )}
-          {repliesToDisplay.map((reply) => (
-            <Comment
-              key={reply._id}
-              comment={reply}
-              postId={postId}
-              onCommentAdded={onCommentAdded}
-              currentUserEmail={currentUserEmail}
-            />
-          ))}
-           {showReplies && (
-            <button 
-              className="text-blue-600 text-sm mt-2 hover:underline"
-              onClick={() => setShowReplies(false)}
-            >
-              Hide replies
-            </button>
-          )}
-        </div>
-      )}
     </motion.div>
   );
 };
@@ -187,7 +188,32 @@ const CommentList = ({ postId, isOpen, onClose }) => {
     try {
       setLoading(true);
       const response = await axios.get(`/api/comments/posts/${postId}?page=${page}&limit=5`);
-      setComments(prevComments => page === 1 ? response.data.comments : [...prevComments, ...response.data.comments]);
+      setComments(prevComments => {
+        if (page === 1) return response.data.comments; 
+
+         const existingCommentIds = new Set(prevComments.map(c => c._id));
+         const topLevelNewComments = response.data.comments.filter(c => !c.parentCommentId && !existingCommentIds.has(c._id));
+         
+         const updatedComments = [...prevComments];
+         response.data.comments.forEach(newComment => {
+           const existingCommentIndex = updatedComments.findIndex(c => c._id === newComment._id);
+           if (existingCommentIndex > -1) {
+             updatedComments[existingCommentIndex] = { 
+                 ...updatedComments[existingCommentIndex], 
+                 ...newComment, 
+                 replies: newComment.replies || updatedComments[existingCommentIndex].replies 
+              };
+           } else {
+               if (!newComment.parentCommentId) {
+                 updatedComments.push(newComment);
+               }
+           }
+         });
+         
+         updatedComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+         return updatedComments;
+      });
       setHasMore(response.data.hasMore);
       setError(null);
     } catch (error) {
@@ -204,7 +230,6 @@ const CommentList = ({ postId, isOpen, onClose }) => {
       setComments([]);
       setHasMore(true);
       fetchComments(1);
-      // Get current user's email
       axios.get('/api/auth/check')
         .then(response => {
           setCurrentUserEmail(response.data.user.email);
@@ -212,7 +237,6 @@ const CommentList = ({ postId, isOpen, onClose }) => {
         .catch(error => {
           console.error('Error fetching user:', error);
         });
-      // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
@@ -225,21 +249,17 @@ const CommentList = ({ postId, isOpen, onClose }) => {
 
   const handleCommentAdded = (newComment, isDeleted = false, deletedCommentId = null) => {
     if (isDeleted) {
-      // Recursively find and remove the deleted comment/reply
       const removeComment = (commentsList, id) => {
         return commentsList.reduce((acc, comment) => {
           if (comment._id === id) {
-            return acc; // Skip the deleted comment
+            return acc;
           }
           if (comment.replies && comment.replies.length > 0) {
-            // Recursively filter replies
             const updatedReplies = removeComment(comment.replies, id);
-            // Only include the comment if it still has replies or wasn't the target
-            if (comment._id !== id) { // Ensure we don't add the deleted comment itself
+            if (comment._id !== id) {
                  acc.push({ ...comment, replies: updatedReplies });
             }
           } else {
-             // Only include the comment if it wasn't the target and has no replies (or replies were filtered out)
              if (comment._id !== id) {
                acc.push(comment);
              }
@@ -249,35 +269,23 @@ const CommentList = ({ postId, isOpen, onClose }) => {
       };
       setComments(prevComments => removeComment(prevComments, deletedCommentId));
       
-      // Update the comment count in the parent component (PostCard)
-      // This part might need refinement depending on how comment count is managed.
-      // Currently, it decrements by 1 for any deletion, which might not be accurate for replies.
       if (onCommentAdded) {
-        // We need to know if a top-level comment or a reply was deleted to update count correctly.
-        // For simplicity, let's assume for now that onCommentAdded in PostCard handles overall count updates.
-        // If a reply is deleted, the top-level comment's reply count *in the backend* will eventually be correct on re-fetch.
-        // A more real-time approach would involve the backend returning updated counts on delete.
-        // Let's just trigger the parent update for now, the count might be slightly off until refresh if it's a reply.
-         onCommentAdded(null, true, deletedCommentId); // Pass the ID of the deleted item
+         onCommentAdded(null, true, deletedCommentId); 
       }
 
     } else if (newComment) {
-       // Find the parent comment and add the new reply, or add as a new top-level comment
-      const addComment = (commentsList, commentToAdd) => {
-         // If it's a top-level comment
+       const addComment = (commentsList, commentToAdd) => {
          if (!commentToAdd.parentCommentId) {
            return [commentToAdd, ...commentsList];
          }
 
-         // If it's a reply, find the parent
          return commentsList.map(comment => {
            if (comment._id === commentToAdd.parentCommentId) {
-             // Add the reply to the parent's replies array
-             // Ensure replies array exists
              const updatedReplies = comment.replies ? [...comment.replies, commentToAdd] : [commentToAdd];
+             updatedReplies.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
              return { ...comment, replies: updatedReplies };
            } else if (comment.replies && comment.replies.length > 0) {
-             // Recursively check replies
              return { ...comment, replies: addComment(comment.replies, commentToAdd) };
            }
            return comment;
@@ -286,16 +294,8 @@ const CommentList = ({ postId, isOpen, onClose }) => {
 
       setComments(prevComments => addComment(prevComments, newComment));
       
-      // Update the comment count in the parent component
-       if (onCommentAdded && !newComment.parentCommentId) {
-         // Only increment total count if it's a top-level comment
+       if (onCommentAdded) {
          onCommentAdded(newComment); 
-       } else if (onCommentAdded && newComment.parentCommentId) {
-          // If a reply is added, the total comment count might not change 
-          // (depending on how you define total count - top-level only or all). 
-          // If it's total replies, backend should return updated count.
-          // For now, if it's a reply, we just update the state, count in PostCard might be off.
-           onCommentAdded(newComment); // Still call to trigger potential updates in PostCard if needed
        }
     }
   };
@@ -318,7 +318,6 @@ const CommentList = ({ postId, isOpen, onClose }) => {
     
     const deltaY = currentY - startY;
     
-    // Only allow dragging down
     if (deltaY > 0) {
       e.preventDefault();
       if (modalRef.current) {
@@ -328,23 +327,44 @@ const CommentList = ({ postId, isOpen, onClose }) => {
   };
 
   const handleTouchEnd = () => {
-    if (!startY || !currentY) return;
-    
     const deltaY = currentY - startY;
-    
-    // If dragged down more than 100px, close the modal
-    if (deltaY > 100) {
+    const closeThreshold = 100;
+
+    if (deltaY > closeThreshold) {
       onClose();
     } else {
-      // Reset position
       if (modalRef.current) {
-        modalRef.current.style.transform = 'translateY(0)';
+        modalRef.current.style.transform = 'translateY(0px)';
       }
     }
-    
     setStartY(null);
     setCurrentY(null);
   };
+
+  useEffect(() => {
+    const modalElement = modalRef.current;
+    if (!modalElement) return;
+
+    const handleScroll = (e) => {
+       const isScrollable = modalElement.scrollHeight > modalElement.clientHeight;
+       if (isScrollable) {
+         const atTop = modalElement.scrollTop === 0;
+         const atBottom = modalElement.scrollHeight - modalElement.scrollTop === modalElement.clientHeight;
+
+         if (e.deltaY < 0 && atTop) {
+           e.preventDefault();
+         } else if (e.deltaY > 0 && atBottom) {
+           e.preventDefault();
+         }
+       }
+    };
+
+    modalElement.addEventListener('wheel', handleScroll);
+
+    return () => {
+      modalElement.removeEventListener('wheel', handleScroll);
+    };
+  }, [isOpen]);
 
   return (
     <AnimatePresence>
@@ -353,8 +373,7 @@ const CommentList = ({ postId, isOpen, onClose }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center"
           onClick={onClose}
         >
           <motion.div
@@ -362,79 +381,54 @@ const CommentList = ({ postId, isOpen, onClose }) => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-hidden flex flex-col touch-none"
-            onClick={e => e.stopPropagation()}
+            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+            className="relative bg-white w-full max-w-md h-full max-h-[80vh] rounded-t-2xl overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            {/* Header */}
-            <div className="p-4 border-b border-gray-200">
-              <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Comments</h3>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={onClose}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <FaTimes />
-                </motion.button>
-              </div>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold">Comments</h2>
+              <button onClick={onClose} className="text-gray-600 hover:text-gray-800">
+                <FaTimes size={18} />
+              </button>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 overscroll-contain">
-              {loading && comments.length === 0 ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4" id="comment-list-area">
+              {loading && comments.length === 0 && <p className="text-center text-gray-500">Loading comments...</p>}
+              {error && <p className="text-center text-red-500">{error}</p>}
+              {comments.length === 0 && !loading && !error && <p className="text-center text-gray-500">No comments yet.</p>}
+              
+              {comments.map(comment => (
+                <Comment 
+                  key={comment._id} 
+                  comment={comment}
+                  postId={postId}
+                  onCommentAdded={handleCommentAdded}
+                  currentUserEmail={currentUserEmail}
+                />
+              ))}
+
+              {!loading && hasMore && (
+                <div className="flex justify-center mt-4">
+                  <button 
+                    onClick={handleLoadMore} 
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Load More
+                  </button>
                 </div>
-              ) : error ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-red-500 text-center py-4 bg-red-50 rounded-xl"
-                >
-                  {error}
-                </motion.div>
-              ) : (
-                <>
-                  <div className="sticky top-0 z-10 bg-gray-50 pb-4">
-                    <CommentForm postId={postId} onCommentAdded={handleCommentAdded} />
-                  </div>
-                  <div className="mt-6 space-y-4">
-                    {comments.length === 0 ? (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-center py-8 text-gray-500"
-                      >
-                        No comments yet. Be the first to comment!
-                      </motion.div>
-                    ) : (
-                      comments.map((comment) => (
-                        <Comment
-                          key={comment._id}
-                          comment={comment}
-                          postId={postId}
-                          onCommentAdded={handleCommentAdded}
-                          currentUserEmail={currentUserEmail}
-                        />
-                      ))
-                    )}
-                  </div>
-                  {hasMore && (
-                    <motion.button
-                      onClick={handleLoadMore}
-                      whileTap={{ scale: 0.95 }}
-                      className="w-full mt-4 py-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
-                    >
-                      Load More
-                    </motion.button>
-                  )}
-                </>
               )}
+            </div>
+
+            <div className="p-4 border-t border-gray-200">
+              <CommentForm 
+                postId={postId} 
+                onCommentAdded={(newComment) => { 
+                   handleCommentAdded(newComment);
+                }}
+              />
             </div>
           </motion.div>
         </motion.div>
