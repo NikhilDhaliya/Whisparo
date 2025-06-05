@@ -1,25 +1,31 @@
 /* eslint-disable no-unused-vars */
 import {React, useEffect, useState} from 'react'
 import Avatar from '../common/Avatar'
-import { FaThumbsUp, FaFlag, FaComment } from 'react-icons/fa'
+import { FaThumbsUp, FaFlag, FaComment, FaEdit, FaTrash, FaSave, FaTimes } from 'react-icons/fa'
 import { formatDistanceToNow } from 'date-fns'
 import axios from 'axios'
 import CommentList from '../comments/CommentList'
 
-const PostCard = ({ post }) => {
+const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
   const {
     content,
     category,
     createdAt,
     likes: initialLikes,
     author,
-    id: postId
+    id: postId,
+    commentsCount,
+    authorEmail
   } = post;
 
   const [userVoteStatus, setUserVoteStatus] = useState(null);
   const [likes, setLikes] = useState(initialLikes || 0);
   const [isVoting, setIsVoting] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(content);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleVote = async () => {
     if (isVoting) return; // Prevent multiple votes while processing
@@ -74,11 +80,72 @@ const PostCard = ({ post }) => {
     }
   };
 
+  const handleDelete = async () => {
+    if (isDeleting) return;
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+
+    try {
+      setIsDeleting(true);
+      await axios.delete(`/api/posts/${postId}`);
+      if (onPostDeleted) {
+        onPostDeleted(postId);
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditedContent(content);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedContent(content); // Reset content
+  };
+
+  const handleUpdate = async () => {
+    console.log('handleUpdate called');
+    if (editedContent.trim() === content.trim() || !editedContent.trim()) {
+      setIsEditing(false);
+      return;
+    }
+    try {
+      setIsSaving(true);
+      const response = await axios.put(`/api/posts/${postId}`, { body: editedContent });
+      // Call the onPostUpdated callback with the updated post data
+      console.log('Backend update response data:', response.data);
+      if (onPostUpdated) {
+        onPostUpdated(response.data.post); // Assuming the backend returns the updated post
+      }
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating post:', error);
+      // Log the full error response if available
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('Error request:', error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error message:', error.message);
+      }
+      // Optionally show a user-friendly error message here
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const isOwnedByUser = currentUserEmail && authorEmail === currentUserEmail;
+
   return (
     <div className='h-auto w-full bg-white rounded-lg shadow-md p-5 flex flex-col hover:shadow-lg transition-shadow duration-300'>
         <div className="postHeader flex justify-between">
             <div className="user flex gap-2 items-center">
-                <Avatar email={post?.newUsername} />
+                <Avatar email={post?.authorEmail} />
                 <span className="font-medium">{post?.newUsername || 'Anonymous'}</span>
             </div>
             <div className="timeStamp text-gray-500 text-sm">
@@ -86,7 +153,16 @@ const PostCard = ({ post }) => {
             </div>
         </div>
         <div className="postContent mt-2 px-2">
-            <p className="text-gray-700">{content}</p>
+            {isEditing ? (
+              <textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows="4"
+              />
+            ) : (
+              <p className="text-gray-700">{content}</p>
+            )}
         </div>
         <div className="postDetails flex justify-between mt-auto pt-3 border-t border-gray-100">
             <div className="left">
@@ -95,31 +171,80 @@ const PostCard = ({ post }) => {
                 </span>
             </div>
             <div className="right flex gap-4 items-center">
-                <button 
-                    onClick={handleVote}
-                    disabled={isVoting}
-                    className={`flex items-center gap-1 transition-all duration-200 ${
-                      userVoteStatus === 'like' 
-                        ? 'text-blue-500 scale-110' 
-                        : 'text-gray-600 hover:text-blue-500 hover:scale-105'
-                    } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                    <FaThumbsUp className="transition-transform duration-200" />
-                    <span className="text-sm font-medium">{likes}</span>
-                </button>
-                <button 
-                    onClick={() => setShowComments(true)}
-                    className="flex items-center gap-1 text-gray-600 hover:text-blue-500 transition-colors duration-200"
-                >
-                    <FaComment className="hover:scale-110 transition-transform duration-200" />
-                    <span className="text-sm">{post.commentsCount || 0}</span>
-                </button>
-                <button 
+                {!isEditing && (
+                  <button 
+                      onClick={handleVote}
+                      disabled={isVoting}
+                      className={`flex items-center gap-1 transition-all duration-200 ${
+                        userVoteStatus === 'like' 
+                          ? 'text-blue-500 scale-110' 
+                          : 'text-gray-600 hover:text-blue-500 hover:scale-105'
+                      } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                      <FaThumbsUp className="transition-transform duration-200" />
+                      <span className="text-sm font-medium">{likes}</span>
+                  </button>
+                )}
+                
+                {!isEditing && (
+                  <button 
+                      onClick={() => setShowComments(true)}
+                      className="flex items-center gap-1 text-gray-600 hover:text-blue-500 transition-colors duration-200"
+                  >
+                      <FaComment className="hover:scale-110 transition-transform duration-200" />
+                      <span className="text-sm">{commentsCount || 0}</span>
+                  </button>
+                )}
+
+                {isOwnedByUser && !isEditing && (
+                  <button 
+                      onClick={handleEdit}
+                      className="text-gray-600 hover:text-blue-500 transition-colors duration-200"
+                  >
+                      <FaEdit className="hover:scale-110 transition-transform duration-200" />
+                  </button>
+                )}
+
+                {isOwnedByUser && !isEditing && (
+                   <button 
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className={`text-gray-600 hover:text-red-500 transition-colors duration-200 ${
+                        isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                  >
+                      <FaTrash className={`hover:scale-110 transition-transform duration-200 ${isDeleting ? 'animate-spin' : ''}`} />
+                  </button>
+                )}
+
+                {isEditing && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleUpdate}
+                      disabled={!editedContent.trim() || isSaving}
+                      className={`flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors ${
+                        !editedContent.trim() || isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {isSaving ? 'Saving...' : ''} <FaSave /> Save
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                       className="flex items-center gap-1 px-3 py-1 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors"
+                    >
+                      <FaTimes /> Cancel
+                    </button>
+                  </div>
+                )}
+
+                {!isEditing && (
+                   <button 
                     onClick={handleReport}
                     className="text-gray-600 hover:text-yellow-500 transition-colors duration-200"
-                >
-                    <FaFlag className="hover:scale-110 transition-transform duration-200" />
-                </button>
+                  >
+                      <FaFlag className="hover:scale-110 transition-transform duration-200" />
+                  </button>
+                )}
             </div>
         </div>
         

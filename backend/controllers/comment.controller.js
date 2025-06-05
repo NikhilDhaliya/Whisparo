@@ -54,41 +54,55 @@ export const getComments = async (req, res) => {
     try {
         const { postId } = req.params;
         const userEmail = req.user?.email;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5; // Default to 5 comments per page
+        const skip = (page - 1) * limit;
 
-        // Get all comments for the post
-        const comments = await Comment.find({ postId })
-            .sort({ createdAt: -1 });
+        // Get top-level comments for the post with pagination
+        const topLevelComments = await Comment.find({ postId, parentCommentId: null })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
 
-        // Transform comments to include vote information
-        const commentsWithVotes = comments.map(comment => ({
-            ...comment.toObject(),
+        // Get the total count of top-level comments for pagination info
+        const totalTopLevelComments = await Comment.countDocuments({ postId, parentCommentId: null });
+
+        // For each top-level comment, fetch its replies. 
+        // Note: This approach fetches all replies for the displayed top-level comments.
+        // For very deep/wide reply trees, a more complex paginated reply fetching might be needed,
+        // but for now, fetching all replies for displayed top-level comments is simpler.
+        const commentsWithReplies = await Promise.all(topLevelComments.map(async comment => {
+            const replies = await Comment.find({ parentCommentId: comment._id }).sort({ createdAt: 1 });
+            return { ...comment.toObject(), replies };
+        }));
+
+        // Transform comments and replies to include vote information
+        const transformedComments = commentsWithReplies.map(comment => ({
+            ...comment,
             votes: {
                 score: comment.votes.score,
                 userVote: userEmail ? (
                     comment.votes.upvotes.includes(userEmail) ? 'like' : 'none'
                 ) : null
-            }
+            },
+            replies: comment.replies.map(reply => ({
+                ...reply.toObject(),
+                votes: {
+                    score: reply.votes.score,
+                    userVote: userEmail ? (
+                        reply.votes.upvotes.includes(userEmail) ? 'like' : 'none'
+                    ) : null
+                }
+            }))
         }));
 
-        // Organize comments into a tree structure
-        const commentTree = commentsWithVotes.reduce((tree, comment) => {
-            if (!comment.parentCommentId) {
-                // Top-level comment
-                tree.push({
-                    ...comment,
-                    replies: []
-                });
-            } else {
-                // Find parent comment and add as reply
-                const parent = findCommentInTree(tree, comment.parentCommentId);
-                if (parent) {
-                    parent.replies.push(comment);
-                }
-            }
-            return tree;
-        }, []);
-
-        res.json(commentTree);
+        res.json({
+            comments: transformedComments,
+            currentPage: page,
+            totalPages: Math.ceil(totalTopLevelComments / limit),
+            totalComments: totalTopLevelComments,
+            hasMore: skip + topLevelComments.length < totalTopLevelComments,
+        });
     } catch (error) {
         console.error('Error fetching comments:', error);
         res.status(500).json({ message: 'Error fetching comments' });
@@ -157,20 +171,6 @@ export const deleteComment = async (req, res) => {
         res.status(500).json({ message: 'Error deleting comment' });
     }
 };
-
-// Helper function to find a comment in the tree structure
-function findCommentInTree(tree, commentId) {
-    for (const comment of tree) {
-        if (comment._id.toString() === commentId.toString()) {
-            return comment;
-        }
-        if (comment.replies) {
-            const found = findCommentInTree(comment.replies, commentId);
-            if (found) return found;
-        }
-    }
-    return null;
-}
 
 // Get comments by user ID
 export const getCommentsByUser = async (req, res) => {

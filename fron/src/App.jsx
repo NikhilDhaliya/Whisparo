@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import CreatePost from './pages/CreatePost';
 import ProfilePage from './pages/ProfilePage';
+import TrendingPage from './pages/TrendingPage';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -36,6 +37,7 @@ const App = () => {
             <Route index element={<HomePage />} />
             <Route path="/create" element={<CreatePost/>} />
             <Route path="/profile" element={<ProfilePage/>} />
+            <Route path="/trending" element={<TrendingPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

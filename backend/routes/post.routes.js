@@ -5,12 +5,16 @@ import {
   getPostById,
   updatePost,
   deletePost,
+  getTrendingPosts,
 } from "../controllers/post.controller.js";
 import { votePost, getVoteStatus } from "../controllers/vote.controller.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { setUsernameMiddleware } from "../middlewares/setUsername.js";
 
 const router = express.Router();
+
+// Get trending posts (must be before /:id routes)
+router.get("/trending", getTrendingPosts);
 
 router.get("/", setUsernameMiddleware, getAllPosts);
 router.get("/:id", setUsernameMiddleware, getPostById);

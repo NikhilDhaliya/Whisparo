@@ -8,6 +8,7 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
 
   const fetchPosts = async () => {
     try {
@@ -16,6 +17,7 @@ const HomePage = () => {
       // Shuffle the posts array randomly
       const shuffledPosts = response.data.posts.sort(() => Math.random() - 0.5);
       setPosts(shuffledPosts);
+      console.log('Fetched and shuffled posts:', shuffledPosts);
       setError(null);
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -25,12 +27,35 @@ const HomePage = () => {
     }
   };
 
+  const fetchUserProfile = async () => {
+    try {
+      const response = await axios.get('/api/auth/check');
+      setCurrentUserEmail(response.data.user.email);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setCurrentUserEmail(null);
+    }
+  };
+
   useEffect(() => {
+    fetchUserProfile();
     fetchPosts();
   }, [refreshTrigger]); // Depend on refreshTrigger
 
   const handleRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Function to remove a post from the list after deletion
+  const handlePostDeleted = (deletedPostId) => {
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
+  };
+
+  // Function to update a post in the list after editing
+  const handlePostUpdated = (updatedPost) => {
+    setPosts(prevPosts => prevPosts.map(post => 
+      post.id === updatedPost._id ? { ...post, content: updatedPost.body } : post
+    ));
   };
 
   return (
@@ -49,7 +74,7 @@ const HomePage = () => {
       </div>
       {loading && <div className="text-center">Loading posts...</div>}
       {error && <div className="text-red-500 text-center">{error}</div>}
-      {!loading && !error && <PostList posts={posts} />}
+      {!loading && !error && <PostList posts={posts} currentUserEmail={currentUserEmail} onPostDeleted={handlePostDeleted} onPostUpdated={handlePostUpdated} />}
     </div>
   );
 };

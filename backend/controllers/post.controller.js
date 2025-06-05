@@ -47,15 +47,21 @@ export const getAllPosts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const filter = req.query.filter || 'latest';
+    const authorEmail = req.query.authorEmail; // Get authorEmail from query
     
     const skip = (page - 1) * limit;
     
     let sortOptions = {};
     let filterCondition = {};
 
+    // Add authorEmail filter if provided
+    if (authorEmail) {
+      filterCondition.authorEmail = authorEmail;
+    }
+
     if (filter === 'trending') {
       sortOptions = { 'votes.score': -1, createdAt: -1 };
-      filterCondition = { 'votes.upvotes.length': { $gt: 5 } }; // Filter for likes > 5
+      filterCondition['votes.upvotes.length'] = { $gt: 5 }; // Filter for likes > 5
     } else {
       // 'latest' is default
       sortOptions = { createdAt: -1 };
@@ -168,5 +174,33 @@ export const deletePost = async (req, res) => {
     res.status(200).json({ message: "Post deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const getTrendingPosts = async (req, res) => {
+  try {
+    const trendingPosts = await Post.find({ 'votes.score': { $gt: 5 } })
+      .sort({ 'votes.score': -1, createdAt: -1 })
+      .lean();
+
+    // Transform the data to match the frontend expectations
+    const formattedPosts = trendingPosts.map(post => ({
+      id: post._id,
+      content: post.body,
+      category: post.category,
+      createdAt: post.createdAt,
+      likes: post.votes.score || 0,
+      authorEmail: post.authorEmail,
+      newUsername: post.authorUsername || 'Anonymous',
+      commentsCount: 0 // We'll add this if needed
+    }));
+
+    res.json(formattedPosts);
+  } catch (error) {
+    console.error('Error fetching trending posts:', error);
+    res.status(500).json({ 
+      message: 'Error fetching trending posts',
+      error: error.message 
+    });
   }
 };

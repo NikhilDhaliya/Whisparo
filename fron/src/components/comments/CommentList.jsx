@@ -101,12 +101,15 @@ const CommentList = ({ postId, isOpen, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchComments = async () => {
+  const fetchComments = async (page) => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/comments/posts/${postId}`);
-      setComments(response.data);
+      const response = await axios.get(`/api/comments/posts/${postId}?page=${page}&limit=5`); // Request 5 comments per page
+      setComments(prevComments => page === 1 ? response.data.comments : [...prevComments, ...response.data.comments]);
+      setHasMore(response.data.hasMore);
       setError(null);
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -118,7 +121,10 @@ const CommentList = ({ postId, isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      fetchComments();
+      setCurrentPage(1); // Reset to first page when modal opens
+      setComments([]); // Clear previous comments
+      setHasMore(true); // Assume more comments until proven otherwise
+      fetchComments(1);
     }
   }, [postId, isOpen]);
 
@@ -131,7 +137,15 @@ const CommentList = ({ postId, isOpen, onClose }) => {
   };
 
   const handleCommentAdded = (newComment) => {
-    fetchComments();
+    // Option 1: Prepend new comment (simple, but might not fit strict pagination order)
+    // setComments(prevComments => [newComment, ...prevComments]);
+    // Option 2: Re-fetch the first page (ensures correct order, less efficient)
+    fetchComments(1);
+  };
+
+  const handleLoadMore = () => {
+    setCurrentPage(prevPage => prevPage + 1);
+    fetchComments(currentPage + 1);
   };
 
   if (!isOpen && !isClosing) return null;
@@ -164,7 +178,7 @@ const CommentList = ({ postId, isOpen, onClose }) => {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-          {loading ? (
+          {loading && comments.length === 0 ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
             </div>
@@ -191,6 +205,19 @@ const CommentList = ({ postId, isOpen, onClose }) => {
                   ))
                 )}
               </div>
+              {hasMore && (
+                <div className="text-center mt-4">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={loading} // Disable button while loading
+                    className={`px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 ${
+                      loading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {loading ? 'Loading...' : 'Load More'}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>

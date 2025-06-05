@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaSignOutAlt, FaUser, FaEnvelope, FaThumbsUp, FaComment } from 'react-icons/fa';
+import { FaSignOutAlt, FaUser, FaEnvelope, FaThumbsUp, FaComment, FaEdit, FaTrash, FaSave, FaTimes } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 
 const ProfilePage = () => {
@@ -13,6 +13,10 @@ const ProfilePage = () => {
   const [userPosts, setUserPosts] = useState([]);
   const [userComments, setUserComments] = useState([]);
   const [activeTab, setActiveTab] = useState('posts'); // 'posts' or 'comments'
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editedPostContent, setEditedPostContent] = useState('');
+  const [isSavingPost, setIsSavingPost] = useState(false);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -55,6 +59,52 @@ const ProfilePage = () => {
       setError('Failed to logout');
     } finally {
       setIsLoggingOut(false);
+    }
+  };
+
+  const handleEditPost = (post) => {
+    setEditingPostId(post.id);
+    setEditedPostContent(post.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPostId(null);
+    setEditedPostContent('');
+  };
+
+  const handleUpdatePost = async (postId) => {
+    if (!editedPostContent.trim()) return; // Prevent saving empty content
+    setIsSavingPost(true);
+    try {
+      const _response = await axios.put(`/api/posts/${postId}`, { body: editedPostContent });
+      // Update the post in the userPosts state
+      setUserPosts(userPosts.map(post => 
+        post.id === postId ? { ...post, content: editedPostContent } : post
+      ));
+      setEditingPostId(null);
+      setEditedPostContent('');
+    } catch (error) {
+      console.error('Error updating post:', error);
+      // Optionally show an error message to the user
+    } finally {
+      setIsSavingPost(false);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (isDeletingPost) return;
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+
+    setIsDeletingPost(true);
+    try {
+      await axios.delete(`/api/posts/${postId}`);
+      // Remove the post from the userPosts state
+      setUserPosts(userPosts.filter(post => post.id !== postId));
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      // Optionally show an error message to the user
+    } finally {
+      setIsDeletingPost(false);
     }
   };
 
@@ -174,20 +224,73 @@ const ProfilePage = () => {
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="font-medium text-gray-900">{post.content}</h3>
+                              {editingPostId === post.id ? (
+                                <textarea
+                                  value={editedPostContent}
+                                  onChange={(e) => setEditedPostContent(e.target.value)}
+                                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                  rows="4"
+                                />
+                              ) : (
+                                <h3 className="font-medium text-gray-900">{post.content}</h3>
+                              )}
+                              
                               <p className="text-sm text-gray-500 mt-1">
                                 {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
                               </p>
                             </div>
+                            
                             <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-1 text-gray-600">
-                                <FaThumbsUp />
-                                <span>{post.likes}</span>
-                              </div>
-                              <div className="flex items-center gap-1 text-gray-600">
-                                <FaComment />
-                                <span>{post.commentsCount}</span>
-                              </div>
+                              {editingPostId === post.id ? (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleUpdatePost(post.id)}
+                                    disabled={!editedPostContent.trim() || isSavingPost}
+                                    className={`flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors ${
+                                      !editedPostContent.trim() || isSavingPost ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                  >
+                                    {isSavingPost ? 'Saving...' : ''} <FaSave />
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEdit}
+                                    disabled={isSavingPost}
+                                    className={`flex items-center gap-1 px-3 py-1 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors ${
+                                      isSavingPost ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                  >
+                                    <FaTimes />
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex items-center gap-1 text-gray-600">
+                                    <FaThumbsUp />
+                                    <span>{post.likes}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-gray-600">
+                                    <FaComment />
+                                    <span>{post.commentsCount}</span>
+                                  </div>
+                                  {/* Edit button */}
+                                  <button 
+                                      onClick={() => handleEditPost(post)}
+                                      className="text-gray-600 hover:text-blue-500 transition-colors duration-200"
+                                  >
+                                      <FaEdit className="hover:scale-110 transition-transform duration-200" />
+                                  </button>
+                                  {/* Delete button */}
+                                   <button 
+                                      onClick={() => handleDeletePost(post.id)}
+                                      disabled={isDeletingPost}
+                                      className={`text-gray-600 hover:text-red-500 transition-colors duration-200 ${
+                                        isDeletingPost ? 'opacity-50 cursor-not-allowed' : ''
+                                      }`}
+                                  >
+                                      <FaTrash className={`hover:scale-110 transition-transform duration-200 ${isDeletingPost ? 'animate-spin' : ''}`} />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
