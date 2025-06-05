@@ -143,6 +143,9 @@ const ProfilePage = () => {
 
   const handleVote = async (postId, voteType) => {
     try {
+      // Only handle upvotes
+      if (voteType !== 'upvote') return;
+      
       const response = await axios.post(`/api/posts/${postId}/vote`, { voteType });
       setPosts(posts.map(post => 
         post._id === postId ? { ...post, ...response.data } : post

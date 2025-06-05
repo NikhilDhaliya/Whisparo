@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState } from 'react';
-import { FaThumbsUp, FaThumbsDown, FaComment } from 'react-icons/fa';
+import { FaThumbsUp, FaComment } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommentList from './comments/CommentList';
 
@@ -73,20 +73,10 @@ const PostCard = ({ post, onVote, onComment }) => {
               <span>{post.votes?.upvotes || 0}</span>
             </button>
             <button
-              onClick={() => handleVote(post._id, 'downvote')}
-              disabled={isVoting}
-              className={`flex items-center space-x-1 ${
-                post.userVote === 'downvote'
-                  ? 'text-red-600'
-                  : 'text-gray-500 hover:text-red-600'
-              } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <FaThumbsDown className="w-5 h-5" />
-              <span>{post.votes?.downvotes || 0}</span>
-            </button>
-            <button
               onClick={() => handleComment(post._id)}
-              className="flex items-center space-x-1 text-gray-500 hover:text-blue-600"
+              className={`flex items-center space-x-1 ${
+                showComments ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'
+              }`}
             >
               <FaComment className="w-5 h-5" />
               <span>{post.comments?.length || 0}</span>
