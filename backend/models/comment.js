@@ -21,36 +21,26 @@ const commentSchema = new mongoose.Schema({
         default: null // null for top-level comments
     },
     votes: {
-        upvotes: [{ type: String }], // Array of user emails who upvoted
-        downvotes: [{ type: String }], // Array of user emails who downvoted
-        score: { type: Number, default: 0 } // Computed score (upvotes - downvotes)
+        upvotes: [{ type: String }], // Array of user emails who liked
+        score: { type: Number, default: 0 } // Total likes count
     }
 }, {
     timestamps: true
 });
 
-// Add method to handle voting (similar to post voting)
-commentSchema.methods.vote = async function(userEmail, voteType) {
+// Add method to handle voting
+commentSchema.methods.vote = async function(userEmail) {
     const upvoteIndex = this.votes.upvotes.indexOf(userEmail);
-    const downvoteIndex = this.votes.downvotes.indexOf(userEmail);
     
-    // Remove existing vote if any
+    // Toggle vote
     if (upvoteIndex > -1) {
+        // Remove like if already liked
         this.votes.upvotes.splice(upvoteIndex, 1);
         this.votes.score -= 1;
-    }
-    if (downvoteIndex > -1) {
-        this.votes.downvotes.splice(downvoteIndex, 1);
-        this.votes.score += 1;
-    }
-    
-    // Add new vote
-    if (voteType === 'upvote' && upvoteIndex === -1) {
+    } else {
+        // Add like if not liked
         this.votes.upvotes.push(userEmail);
         this.votes.score += 1;
-    } else if (voteType === 'downvote' && downvoteIndex === -1) {
-        this.votes.downvotes.push(userEmail);
-        this.votes.score -= 1;
     }
     
     return this.save();

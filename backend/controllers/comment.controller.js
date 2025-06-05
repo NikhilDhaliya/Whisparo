@@ -65,8 +65,7 @@ export const getComments = async (req, res) => {
             votes: {
                 score: comment.votes.score,
                 userVote: userEmail ? (
-                    comment.votes.upvotes.includes(userEmail) ? 'upvote' : 
-                    comment.votes.downvotes.includes(userEmail) ? 'downvote' : null
+                    comment.votes.upvotes.includes(userEmail) ? 'like' : 'none'
                 ) : null
             }
         }));
@@ -100,12 +99,7 @@ export const getComments = async (req, res) => {
 export const voteComment = async (req, res) => {
     try {
         const { commentId } = req.params;
-        const { voteType } = req.body;
         const userEmail = req.user.email;
-
-        if (!['upvote', 'downvote'].includes(voteType)) {
-            return res.status(400).json({ message: 'Invalid vote type' });
-        }
 
         const comment = await Comment.findById(commentId);
         if (!comment) {
@@ -117,15 +111,14 @@ export const voteComment = async (req, res) => {
             return res.status(403).json({ message: 'Cannot vote on your own comment' });
         }
 
-        await comment.vote(userEmail, voteType);
+        await comment.vote(userEmail);
 
         res.json({
             message: 'Vote recorded successfully',
             comment: {
                 id: comment._id,
                 score: comment.votes.score,
-                userVote: comment.votes.upvotes.includes(userEmail) ? 'upvote' : 
-                         comment.votes.downvotes.includes(userEmail) ? 'downvote' : null
+                userVote: comment.votes.upvotes.includes(userEmail) ? 'like' : 'none'
             }
         });
     } catch (error) {
@@ -177,4 +170,42 @@ function findCommentInTree(tree, commentId) {
         }
     }
     return null;
-} 
+}
+
+// Get comments by user ID
+export const getCommentsByUser = async (req, res) => {
+    try {
+        const userEmail = req.user.email;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Get all comments by the user
+        const comments = await Comment.find({ authorEmail: userEmail })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        // Get total count for pagination
+        const total = await Comment.countDocuments({ authorEmail: userEmail });
+
+        // Get post details for each comment
+        const commentsWithPostDetails = await Promise.all(comments.map(async comment => {
+            const post = await Post.findById(comment.postId);
+            return {
+                ...comment.toObject(),
+                postTitle: post ? post.body.substring(0, 100) + '...' : 'Post not found',
+                postId: post ? post._id : null
+            };
+        }));
+
+        res.json({
+            comments: commentsWithPostDetails,
+            hasMore: skip + comments.length < total,
+            total
+        });
+    } catch (error) {
+        console.error('Error fetching user comments:', error);
+        res.status(500).json({ message: 'Error fetching user comments' });
+    }
+}; 

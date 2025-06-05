@@ -3,19 +3,21 @@ import {
     createComment,
     getComments,
     voteComment,
-    deleteComment
+    deleteComment,
+    getCommentsByUser
 } from '../controllers/comment.controller.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// All comment routes require authentication
-router.use(authMiddleware);
+// Public routes
+router.get('/posts/:postId', getComments);
 
-// Comment routes
-router.post('/posts/:postId/comments', createComment);
-router.get('/posts/:postId/comments', getComments);
-router.post('/comments/:commentId/vote', voteComment);
-router.delete('/comments/:commentId', deleteComment);
+// Protected routes
+router.use(authMiddleware);
+router.post('/posts/:postId', createComment);
+router.post('/:commentId/vote', voteComment);
+router.delete('/:commentId', deleteComment);
+router.get('/user', getCommentsByUser);
 
 export default router; 

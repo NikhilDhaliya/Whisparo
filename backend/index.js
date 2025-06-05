@@ -27,7 +27,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', userRouter);
 app.use('/api/posts', postRouter);
-app.use('/api', commentRouter); // Comment routes are prefixed with /api
+app.use('/api/comments', commentRouter); // Changed from /api to /api/comments
 
 app.listen(5000, () => {
     connectDB();

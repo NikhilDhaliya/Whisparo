@@ -5,6 +5,21 @@ export const createPost = async (req, res) => {
   try {
     const {body, category } = req.body;
     const authorEmail = req.user.email; // from authMiddleware
+    
+    // Get username from cookie
+    const usernameCookie = req.cookies.username;
+    let username = 'Anonymous';
+    if (usernameCookie) {
+      try {
+        const parsed = JSON.parse(usernameCookie);
+        const age = Date.now() - parsed.timestamp;
+        if (age < 30 * 60 * 1000) {
+          username = parsed.username;
+        }
+      } catch (e) {
+        console.error('Error parsing username cookie:', e);
+      }
+    }
 
     if (!body || !category) {
       return res.status(400).json({ message: "All fields are required" });
@@ -13,7 +28,8 @@ export const createPost = async (req, res) => {
     const newPost = await Post.create({
       body,
       category,
-      authorEmail
+      authorEmail,
+      authorUsername: username
     });
 
     res.status(201).json({
@@ -35,7 +51,7 @@ export const getAllPosts = async (req, res) => {
     const skip = (page - 1) * limit;
     
     let sortOptions = {};
-    let filterCondition = {}; // Add filter condition object
+    let filterCondition = {};
 
     if (filter === 'trending') {
       sortOptions = { 'votes.score': -1, createdAt: -1 };
@@ -51,40 +67,25 @@ export const getAllPosts = async (req, res) => {
       .skip(skip)
       .limit(limit);
     
-    // Get total count for pagination (apply filter condition here too)
+    // Get total count for pagination
     const total = await Post.countDocuments(filterCondition);
     
     // For each post, get the comment count
     const postsWithCommentCounts = await Promise.all(posts.map(async post => {
       // Count comments for this post
       const commentsCount = await Comment.countDocuments({ postId: post._id });
-      // Get username from cookie if available
-      const usernameCookie = req.cookies.username;
-      let username = 'Anonymous';
-      if (usernameCookie) {
-        try {
-          const parsed = JSON.parse(usernameCookie);
-          const age = Date.now() - parsed.timestamp;
-          if (age < 30 * 60 * 1000) {
-            username = parsed.username;
-          }
-        } catch (e) {
-          console.error('Error parsing username cookie:', e);
-        }
-      }
+      
       return {
         id: post._id,
         content: post.body,
         category: post.category,
         authorEmail: post.authorEmail,
         createdAt: post.createdAt,
-        newUsername: username,
+        newUsername: post.authorUsername, // Use stored username
         likes: post.votes.upvotes.length,
-        dislikes: post.votes.downvotes.length,
         score: post.votes.score,
         userVote: req.user?.email ? (
-          post.votes.upvotes.includes(req.user.email) ? 'upvote' : 
-          post.votes.downvotes.includes(req.user.email) ? 'downvote' : null
+          post.votes.upvotes.includes(req.user.email) ? 'like' : 'none'
         ) : null,
         commentsCount
       };
@@ -96,6 +97,7 @@ export const getAllPosts = async (req, res) => {
       total
     });
   } catch (error) {
+    console.error('Error fetching posts:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -103,7 +105,7 @@ export const getAllPosts = async (req, res) => {
 export const getPostById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userEmail = req.user?.email; // Optional chaining since this endpoint might be public
+    const userEmail = req.user?.email;
     
     const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: "Post not found" });
@@ -111,11 +113,11 @@ export const getPostById = async (req, res) => {
     // Transform post to include vote information
     const postWithVotes = {
       ...post.toObject(),
+      newUsername: post.authorUsername, // Use stored username
       votes: {
         score: post.votes.score,
         userVote: userEmail ? (
-          post.votes.upvotes.includes(userEmail) ? 'upvote' : 
-          post.votes.downvotes.includes(userEmail) ? 'downvote' : null
+          post.votes.upvotes.includes(userEmail) ? 'like' : 'none'
         ) : null
       }
     };

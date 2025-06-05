@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import AppLayout from './components/layout/AppLayout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
+import CreatePost from './pages/CreatePost';
+import ProfilePage from './pages/ProfilePage';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -32,6 +34,8 @@ const App = () => {
             </ProtectedRoute>
           }>
             <Route index element={<HomePage />} />
+            <Route path="/create" element={<CreatePost/>} />
+            <Route path="/profile" element={<ProfilePage/>} />
           </Route>
         </Routes>
       </BrowserRouter>

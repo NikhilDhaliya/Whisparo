@@ -3,7 +3,6 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { v4 as uuidv4 } from 'uuid';
 
-
 const generateToken = (userId) => {
     return jwt.sign({userId}, process.env.JWT_SECRET , {expiresIn:"7d", algorithm: "HS256" })
 }
@@ -15,18 +14,30 @@ const cookieOptions = {
     sameSite: 'Lax' // Prevents CSRF but works with most dev setups
 };
 
+const usernameCookieOptions = {
+    httpOnly: true,
+    maxAge: 30 * 60 * 1000, // 30 minutes
+    secure: false,
+    sameSite: 'Lax'
+};
 
-  const adjectives = ['cool', 'fast', 'brave', 'smart', 'mysterious'];
-  const animals = ['tiger', 'panda', 'falcon', 'otter', 'wolf'];
-  
-  const generateFriendlyUsername = () => {
+const adjectives = ['cool', 'fast', 'brave', 'smart', 'mysterious'];
+const animals = ['tiger', 'panda', 'falcon', 'otter', 'wolf'];
+
+const generateFriendlyUsername = () => {
     const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
     const animal = animals[Math.floor(Math.random() * animals.length)];
     const id = uuidv4().split('-')[0];
     return `${adjective}_${animal}_${id}`; // e.g., brave_otter_3f1a2c9e
 };
 
-  
+const setUsernameCookie = (res, username) => {
+    const payload = {
+        username,
+        timestamp: Date.now()
+    };
+    res.cookie('username', JSON.stringify(payload), usernameCookieOptions);
+};
 
 export const registerUser = async (req,res) => {
     const {email , password} = req.body;
@@ -37,20 +48,20 @@ export const registerUser = async (req,res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password , 10);
-
-        
         const newUser = await User.create({
             email,
             password:hashedPassword
         });
 
         const token = generateToken(newUser._id);
+        const username = generateFriendlyUsername();
+        setUsernameCookie(res, username);
 
         res.status(201).cookie('auth',token,cookieOptions).json({
             user:{
                 _id:newUser._id,
                 email:newUser.email,
-                username: generateFriendlyUsername()
+                username
             },
             token
         });
@@ -63,10 +74,10 @@ export const registerUser = async (req,res) => {
 export const loginUser = async (req, res) => {
     const { email, password } = req.body;
     try {
-        const existingUser = await User.findOne({ email }); // ✅ fix
+        const existingUser = await User.findOne({ email });
 
         if (!existingUser) {
-            return res.status(400).json({ message: "User does not exist" }); // 📝 fix message
+            return res.status(400).json({ message: "User does not exist" });
         }
 
         const isMatch = await bcrypt.compare(password, existingUser.password);
@@ -79,11 +90,14 @@ export const loginUser = async (req, res) => {
         existingUser.isLoggedIn = true;
         await existingUser.save();
 
+        const username = generateFriendlyUsername();
+        setUsernameCookie(res, username);
+
         res.status(200).cookie('auth', token, cookieOptions).json({
             user: {
                 _id: existingUser._id,
                 email: existingUser.email,
-                username: generateFriendlyUsername()
+                username
             },
             token
         });
@@ -95,41 +109,66 @@ export const loginUser = async (req, res) => {
 
 export const logoutUser = async (req, res) => {
     try {
-      const user = req.user; // Get user from auth middleware
-  
-      user.isLoggedIn = false;
-      
-      await user.save();
-  
-      res.clearCookie("auth", {
-        httpOnly: true,
-        secure: false,
-        sameSite: 'lax'
-      });
-  
-      res.status(200).json({ message: "Logged out successfully", user });
+        const user = req.user;
+        user.isLoggedIn = false;
+        await user.save();
+
+        res.clearCookie("auth", {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax'
+        });
+        res.clearCookie("username", {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax'
+        });
+
+        res.status(200).json({ message: "Logged out successfully", user });
     } catch (error) {
-      console.error('Logout error:', error);
-      res.status(500).json({ message: error.message });
+        console.error('Logout error:', error);
+        res.status(500).json({ message: error.message });
     }
-  };
+};
 
 export const checkAuth = async (req, res) => {
-  try {
-    const user = req.user; // From auth middleware
-    if (!user) {
-      return res.status(401).json({ message: 'Not authenticated' });
-    }
+    try {
+        const user = req.user;
+        if (!user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
 
-    res.status(200).json({
-      user: {
-        _id: user._id,
-        email: user.email,
-        username: generateFriendlyUsername() // Generate a new username for each check
-      }
-    });
-  } catch (error) {
-    console.error('Auth check error:', error);
-    res.status(500).json({ message: error.message });
-  }
+        // Check if username cookie exists and is valid
+        const usernameCookie = req.cookies.username;
+        let username;
+        
+        if (usernameCookie) {
+            try {
+                const parsed = JSON.parse(usernameCookie);
+                const age = Date.now() - parsed.timestamp;
+                if (age < 30 * 60 * 1000) {
+                    username = parsed.username;
+                }
+            } catch (e) {
+                console.error('Error parsing username cookie:', e);
+            }
+        }
+
+        // Generate new username if needed
+        if (!username) {
+            username = generateFriendlyUsername();
+            setUsernameCookie(res, username);
+        }
+
+        res.status(200).json({
+            user: {
+                _id: user._id,
+                email: user.email,
+                username
+            }
+        });
+    } catch (error) {
+        console.error('Auth check error:', error);
+        res.status(500).json({ message: error.message });
+    }
 };

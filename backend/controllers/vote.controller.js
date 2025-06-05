@@ -1,7 +1,7 @@
 import Post from '../models/post.js';
 import User from '../models/user.js'; // Assuming you have a User model
 
-// Controller to handle voting on a post (like/dislike)
+// Controller to handle voting on a post (like)
 const votePost = async (req, res) => {
   // Log incoming request
   console.log(`[Vote Controller] votePost: Incoming ${req.method} request to ${req.originalUrl}`);
@@ -10,58 +10,39 @@ const votePost = async (req, res) => {
   console.log('Authenticated user:', req.user);
 
   const { id } = req.params; // Post ID
-  const { voteType } = req.body; // 'like' or 'dislike'
   const userEmail = req.user.email; // Authenticated user email from authMiddleware
 
-  // Map frontend vote types to backend vote types
-  const backendVoteType = voteType === 'like' ? 'upvote' : 'downvote';
-
-  if (!['upvote', 'downvote'].includes(backendVoteType)) {
-    return res.status(400).json({ message: 'Invalid vote type' });
-  }
-
   try {
-    // Atomic update logic
     const post = await Post.findById(id);
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    // 1. Remove user from both upvotes and downvotes
-    await Post.findByIdAndUpdate(id, {
-      $pull: { 'votes.upvotes': userEmail, 'votes.downvotes': userEmail }
-    });
+    // Check if user has already liked the post
+    const hasLiked = post.votes.upvotes.includes(userEmail);
 
-    // 2. Add to the correct array and update score
-    let update = {};
-    if (backendVoteType === 'upvote') {
-      update = {
-        $addToSet: { 'votes.upvotes': userEmail }
-      };
-    } else if (backendVoteType === 'downvote') {
-      update = {
-        $addToSet: { 'votes.downvotes': userEmail }
-      };
+    if (hasLiked) {
+      // Remove like if already liked
+      await Post.findByIdAndUpdate(id, {
+        $pull: { 'votes.upvotes': userEmail },
+        $inc: { 'votes.score': -1 }
+      });
     } else {
-      update = {};
+      // Add like if not liked
+      await Post.findByIdAndUpdate(id, {
+        $addToSet: { 'votes.upvotes': userEmail },
+        $inc: { 'votes.score': 1 }
+      });
     }
 
-    await Post.findByIdAndUpdate(id, update);
-
-    // Recalculate score
+    // Get updated post
     const updatedPost = await Post.findById(id);
-    const newScore = updatedPost.votes.upvotes.length - updatedPost.votes.downvotes.length;
-    updatedPost.votes.score = newScore;
-    await updatedPost.save();
-
-    // Determine the user's new vote status after update
-    const userVoteStatus = updatedPost.votes.upvotes.includes(userEmail) ? 'like' :
-                           updatedPost.votes.downvotes.includes(userEmail) ? 'dislike' :
-                           'none';
+    
+    // Determine the user's new vote status
+    const userVoteStatus = updatedPost.votes.upvotes.includes(userEmail) ? 'like' : 'none';
 
     res.status(200).json({
       likes: updatedPost.votes.upvotes.length,
-      dislikes: updatedPost.votes.downvotes.length,
       score: updatedPost.votes.score,
       voteType: userVoteStatus,
     });
@@ -89,9 +70,7 @@ const getVoteStatus = async (req, res) => {
         }
 
         // Determine the user's vote status from the post document
-        const userVoteStatus = post.votes.upvotes.includes(userEmail) ? 'like' :
-                               post.votes.downvotes.includes(userEmail) ? 'dislike' :
-                               'none';
+        const userVoteStatus = post.votes.upvotes.includes(userEmail) ? 'like' : 'none';
 
         res.status(200).json({ voteType: userVoteStatus });
 
