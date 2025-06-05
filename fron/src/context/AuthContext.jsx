@@ -25,42 +25,55 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
     const checkAuth = async () => {
-      try {
-        // Check if we have a valid cached user
-        const cachedUser = localStorage.getItem('cachedUser');
-        if (cachedUser) {
-          const { user, timestamp } = JSON.parse(cachedUser);
-          // Only use cache if it's less than 30 minutes old
-          if (Date.now() - timestamp < 30 * 60 * 1000) {
-            if (mounted) {
-              setUser(user);
-              setIsAuthenticated(true);
-              setLoading(false);
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          // Set the token in axios headers
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          // Check if we have a valid cached user
+          const cachedUser = localStorage.getItem('cachedUser');
+          if (cachedUser) {
+            const { user, timestamp } = JSON.parse(cachedUser);
+            // Only use cache if it's less than 30 minutes old
+            if (Date.now() - timestamp < 30 * 60 * 1000) {
+              if (mounted) {
+                setUser(user);
+                setIsAuthenticated(true);
+                setLoading(false);
+              }
+              return;
             }
-            return;
+          }
+          
+          // If no valid cache, verify token and get user data
+          const response = await axios.get('/api/auth/check');
+          if (mounted) {
+            setUser(response.data.user);
+            setIsAuthenticated(true);
+            
+            // Cache the user data
+            localStorage.setItem('cachedUser', JSON.stringify({
+              user: response.data.user,
+              timestamp: Date.now()
+            }));
+          }
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          if (mounted) {
+            // If token is invalid, clear everything
+            localStorage.removeItem('token');
+            localStorage.removeItem('cachedUser');
+            delete axios.defaults.headers.common['Authorization'];
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        } finally {
+          if (mounted) {
+            setLoading(false);
           }
         }
-        
-        // If no valid cache, verify token and get user data
-        const response = await axios.get('/api/auth/check');
-        if (mounted) {
-          setUser(response.data.user);
-          setIsAuthenticated(true);
-          
-          // Cache the user data
-          localStorage.setItem('cachedUser', JSON.stringify({
-            user: response.data.user,
-            timestamp: Date.now()
-          }));
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        if (mounted) {
-          localStorage.removeItem('cachedUser');
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-      } finally {
+      } else {
         if (mounted) {
           setLoading(false);
         }
@@ -77,7 +90,11 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await axios.post('/api/auth/login', credentials);
-      const { user } = response.data;
+      const { token, user } = response.data;
+      
+      // Store token and set axios header
+      localStorage.setItem('token', token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       // Cache the user data
       localStorage.setItem('cachedUser', JSON.stringify({
@@ -99,7 +116,11 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await axios.post('/api/auth/register', userData);
-      const { user } = response.data;
+      const { token, user } = response.data;
+      
+      // Store token and set axios header
+      localStorage.setItem('token', token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       setUser(user);
       setIsAuthenticated(true);
@@ -119,7 +140,9 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout failed:', error);
     } finally {
       // Clear everything regardless of backend response
+      localStorage.removeItem('token');
       localStorage.removeItem('cachedUser');
+      delete axios.defaults.headers.common['Authorization'];
       setUser(null);
       setIsAuthenticated(false);
       setLoading(false);
