@@ -4,6 +4,7 @@ import PostList from '../components/home/PostList';
 import axios from 'axios';
 import { FaSyncAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCache } from '../context/CacheContext';
 
 const HomePage = () => {
   const [posts, setPosts] = useState([]);
@@ -13,13 +14,23 @@ const HomePage = () => {
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const containerRef = useRef(null);
+  const { getCache, setCache } = useCache();
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (forceRefresh = false) => {
     try {
+      // Check cache first
+      const cachedData = getCache('homePosts');
+      if (cachedData && !forceRefresh) {
+        setPosts(cachedData);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const response = await axios.get('/api/posts');
       const shuffledPosts = response.data.posts.sort(() => Math.random() - 0.5);
       setPosts(shuffledPosts);
+      setCache('homePosts', shuffledPosts, 5 * 60 * 1000); // Cache for 5 minutes
       setError(null);
     } catch {
       setError('Failed to load posts.');
@@ -28,10 +39,18 @@ const HomePage = () => {
     }
   };
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = async (forceRefresh = false) => {
     try {
+      // Check cache first
+      const cachedData = getCache('userProfile');
+      if (cachedData && !forceRefresh) {
+        setCurrentUserEmail(cachedData.email);
+        return;
+      }
+
       const response = await axios.get('/api/auth/check');
       setCurrentUserEmail(response.data.user.email);
+      setCache('userProfile', response.data.user, 5 * 60 * 1000); // Cache for 5 minutes
     } catch {
       setCurrentUserEmail(null);
     }
@@ -46,19 +65,28 @@ const HomePage = () => {
     if (loading || isRefreshing) return;
     
     setIsRefreshing(true);
-    await fetchPosts();
+    await fetchPosts(true); // Force refresh
+    await fetchUserProfile(true); // Force refresh
     setIsRefreshing(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
   const handlePostDeleted = (deletedPostId) => {
-    setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
+    setPosts(prevPosts => {
+      const newPosts = prevPosts.filter(post => post.id !== deletedPostId);
+      setCache('homePosts', newPosts, 5 * 60 * 1000); // Update cache
+      return newPosts;
+    });
   };
 
   const handlePostUpdated = (updatedPost) => {
-    setPosts(prevPosts => prevPosts.map(post => 
-      post.id === updatedPost._id ? { ...post, content: updatedPost.body } : post
-    ));
+    setPosts(prevPosts => {
+      const newPosts = prevPosts.map(post => 
+        post.id === updatedPost._id ? { ...post, content: updatedPost.body } : post
+      );
+      setCache('homePosts', newPosts, 5 * 60 * 1000); // Update cache
+      return newPosts;
+    });
   };
 
   return (

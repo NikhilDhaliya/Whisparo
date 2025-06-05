@@ -5,6 +5,7 @@ import { FaSignOutAlt, FaUser, FaEnvelope, FaThumbsUp, FaComment, FaEdit, FaTras
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import CommentList from '../components/comments/CommentList';
+import { useCache } from '../context/CacheContext';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -18,15 +19,30 @@ const ProfilePage = () => {
   const [isSavingPost, setIsSavingPost] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [expandedPostId, setExpandedPostId] = useState(null);
+  const { getCache, setCache } = useCache();
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserData = async (forceRefresh = false) => {
       try {
+        // Check cache first
+        const cachedUser = getCache('userProfile');
+        const cachedPosts = getCache('userPosts');
+        
+        if (cachedUser && cachedPosts && !forceRefresh) {
+          setUser(cachedUser);
+          setUserPosts(cachedPosts);
+          setLoading(false);
+          return;
+        }
+
         const profileRes = await axios.get('/api/auth/check');
         setUser(profileRes.data.user);
+        setCache('userProfile', profileRes.data.user, 5 * 60 * 1000); // Cache for 5 minutes
 
         const postsRes = await axios.get('/api/posts?authorEmail=' + encodeURIComponent(profileRes.data.user.email));
         setUserPosts(postsRes.data.posts);
+        setCache('userPosts', postsRes.data.posts, 5 * 60 * 1000); // Cache for 5 minutes
+        
         setError(null);
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -47,6 +63,9 @@ const ProfilePage = () => {
       setIsLoggingOut(true);
       await axios.post('/api/auth/logout');
       localStorage.removeItem('user');
+      // Clear cache on logout
+      setCache('userProfile', null, 0);
+      setCache('userPosts', null, 0);
       navigate('/login');
     } catch (error) {
       console.error('Error logging out:', error);
@@ -71,9 +90,11 @@ const ProfilePage = () => {
     setIsSavingPost(true);
     try {
       await axios.put(`/api/posts/${postId}`, { body: editedPostContent });
-      setUserPosts(userPosts.map(post => 
+      const updatedPosts = userPosts.map(post => 
         post.id === postId ? { ...post, content: editedPostContent } : post
-      ));
+      );
+      setUserPosts(updatedPosts);
+      setCache('userPosts', updatedPosts, 5 * 60 * 1000); // Update cache
       setEditingPostId(null);
       setEditedPostContent('');
       toast.success('Post updated successfully');
@@ -92,7 +113,9 @@ const ProfilePage = () => {
     setIsDeletingPost(true);
     try {
       await axios.delete(`/api/posts/${postId}`);
-      setUserPosts(userPosts.filter(post => post.id !== postId));
+      const updatedPosts = userPosts.filter(post => post.id !== postId);
+      setUserPosts(updatedPosts);
+      setCache('userPosts', updatedPosts, 5 * 60 * 1000); // Update cache
       toast.success('Post deleted successfully');
     } catch (error) {
       console.error('Error deleting post:', error);
