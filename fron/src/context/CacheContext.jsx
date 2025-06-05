@@ -1,11 +1,11 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 
 const CacheContext = createContext();
 
 export const CacheProvider = ({ children }) => {
   const [cache, setCache] = useState({});
 
-  const setCacheData = (key, data) => {
+  const setCacheData = useCallback((key, data) => {
     setCache(prev => ({
       ...prev,
       [key]: {
@@ -13,14 +13,15 @@ export const CacheProvider = ({ children }) => {
         timestamp: Date.now()
       }
     }));
-  };
+  }, []); // Empty dependency array means this function is created once
 
-  const getCacheData = (key, maxAge = 30 * 60 * 1000) => { // 30 minutes default to match username cookie
+  const getCacheData = useCallback((key, maxAge = 30 * 60 * 1000) => { // 30 minutes default to match username cookie
     const cached = cache[key];
     if (!cached) return null;
     
     if (Date.now() - cached.timestamp > maxAge) {
-      // Remove expired cache
+      // Remove expired cache - Note: this might cause a re-render
+      // Consider a separate mechanism for cleanup if this is an issue
       setCache(prev => {
         const { [key]: _, ...rest } = prev;
         return rest;
@@ -29,9 +30,9 @@ export const CacheProvider = ({ children }) => {
     }
     
     return cached.data;
-  };
+  }, [cache]); // Depends on cache state
 
-  const clearCache = (key) => {
+  const clearCache = useCallback((key) => {
     if (key) {
       setCache(prev => {
         const { [key]: _, ...rest } = prev;
@@ -40,7 +41,7 @@ export const CacheProvider = ({ children }) => {
     } else {
       setCache({});
     }
-  };
+  }, []); // Empty dependency array means this function is created once
 
   return (
     <CacheContext.Provider value={{ setCacheData, getCacheData, clearCache }}>
