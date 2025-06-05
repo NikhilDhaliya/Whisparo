@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PostCard from '../components/home/PostCard';
 import { useAuth } from '../context/AuthContext';
-
-const API_URL = 'http://localhost:5000/api';
+import config from '../config';
 
 const TrendingPage = () => {
   const [trendingPosts, setTrendingPosts] = useState([]);
@@ -14,7 +13,7 @@ const TrendingPage = () => {
   useEffect(() => {
     const fetchTrendingPosts = async () => {
       try {
-        const response = await axios.get(`${API_URL}/posts/trending`);
+        const response = await axios.get(`${config.API_URL}/posts/trending`);
         setTrendingPosts(response.data);
         setLoading(false);
       } catch (err) {
