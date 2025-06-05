@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns'
 import axios from 'axios'
 import CommentList from '../comments/CommentList'
 import toast from 'react-hot-toast'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
   const {
@@ -130,19 +131,23 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
   const isOwnedByUser = currentUserEmail && authorEmail === currentUserEmail;
 
   return (
-    <div className='bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden'>
+    <motion.div 
+      className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+    >
       {/* Header */}
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-                <Avatar email={post?.authorEmail} />
+            <Avatar email={post?.authorEmail} />
             <div>
               <span className="font-medium text-gray-900">{post?.newUsername || 'Anonymous'}</span>
               <span className="block text-xs text-gray-500">
                 {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
               </span>
             </div>
-            </div>
+          </div>
           <span className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 rounded-full">
             {category}
           </span>
@@ -151,124 +156,154 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
 
       {/* Content */}
       <div className="p-4">
-            {isEditing ? (
+        <AnimatePresence mode="wait">
+          {isEditing ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
               <textarea
                 value={editedContent}
                 onChange={(e) => setEditedContent(e.target.value)}
-            className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 rows="4"
               />
-            ) : (
-          <div className="space-y-4">
-            <p className="text-gray-700 whitespace-pre-wrap">{content}</p>
-            {post.image?.url && (
-              <div className="mt-2">
-                <img
-                  src={post.image.url}
-                  alt="Post attachment"
-                  className="max-h-96 w-full object-contain rounded-lg"
-                />
+              <div className="flex justify-end space-x-2 mt-2">
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <FaTimes />
+                </button>
+                <button
+                  onClick={handleUpdate}
+                  disabled={isSaving}
+                  className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                    isSaving ? 'bg-blue-400' : 'bg-blue-500 hover:bg-blue-600'
+                  }`}
+                >
+                  {isSaving ? <FaSave className="animate-spin" /> : <FaSave />}
+                </button>
               </div>
-            )}
-        </div>
-        )}
-            </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-4"
+            >
+              <p className="text-gray-700 whitespace-pre-wrap">{content}</p>
+              {post.image?.url && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mt-2"
+                >
+                  <img
+                    src={post.image.url}
+                    alt="Post attachment"
+                    className="max-h-96 w-full object-contain rounded-xl"
+                  />
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Actions */}
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-                  <button 
-                      onClick={handleVote}
-                      disabled={isVoting}
+            <motion.button 
+              onClick={handleVote}
+              disabled={isVoting}
+              whileTap={{ scale: 0.95 }}
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-full transition-all duration-200 ${
-                        userVoteStatus === 'like' 
+                userVoteStatus === 'like' 
                   ? 'bg-blue-50 text-blue-600' 
                   : 'text-gray-600 hover:bg-gray-100'
-                      } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
+              } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
               <FaThumbsUp className={`${userVoteStatus === 'like' ? 'text-blue-600' : ''}`} />
-                      <span className="text-sm font-medium">{likes}</span>
-                  </button>
-                
-                  <button 
-                      onClick={() => setShowComments(true)}
+              <span className="text-sm font-medium">{likes}</span>
+            </motion.button>
+            
+            <motion.button 
+              onClick={() => setShowComments(true)}
+              whileTap={{ scale: 0.95 }}
               className="flex items-center space-x-1 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all duration-200"
-                  >
+            >
               <FaComment />
-                      <span className="text-sm">{commentsCount || 0}</span>
-                  </button>
+              <span className="text-sm">{commentsCount || 0}</span>
+            </motion.button>
           </div>
 
           <div className="flex items-center space-x-2">
-                {isOwnedByUser && !isEditing && (
+            {isOwnedByUser && !isEditing && (
               <>
-                  <button 
-                      onClick={handleEdit}
-                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
-                  >
+                <motion.button
+                  onClick={handleEdit}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                >
                   <FaEdit />
-                  </button>
-                   <button 
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                  className={`p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 ${
-                        isDeleting ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                  >
-                  <FaTrash className={isDeleting ? 'animate-spin' : ''} />
-                  </button>
+                </motion.button>
+                <motion.button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  whileTap={{ scale: 0.95 }}
+                  className={`p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors ${
+                    isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <FaTrash />
+                </motion.button>
               </>
-                )}
-
-                {isEditing && (
-              <div className="flex items-center space-x-2">
-                    <button
-                      onClick={handleUpdate}
-                      disabled={!editedContent.trim() || isSaving}
-                  className={`flex items-center space-x-1 px-3 py-1.5 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors ${
-                        !editedContent.trim() || isSaving ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                  {isSaving ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FaSave /> Save
-                    </>
-                  )}
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                  className="flex items-center space-x-1 px-3 py-1.5 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors"
-                    >
-                      <FaTimes /> Cancel
-                    </button>
-                  </div>
-                )}
-
-                {!isEditing && (
-                   <button 
-                    onClick={handleReport}
-                className="p-2 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-all duration-200"
-                  >
+            )}
+            {!isOwnedByUser && (
+              <motion.button
+                onClick={handleReport}
+                whileTap={{ scale: 0.95 }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
                 <FaFlag />
-                  </button>
-                )}
+              </motion.button>
+            )}
           </div>
-            </div>
         </div>
-        
-        <CommentList 
-            postId={postId} 
-            isOpen={showComments} 
-            onClose={() => setShowComments(false)} 
-        />
-    </div>
-  )
-}
+      </div>
 
-export default PostCard
+      {/* Comments Modal */}
+      <AnimatePresence>
+        {showComments && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            onClick={() => setShowComments(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[80vh] overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-gray-200">
+                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-center">Comments</h3>
+              </div>
+              <CommentList postId={postId} isOpen={showComments} onClose={() => setShowComments(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+export default PostCard;
