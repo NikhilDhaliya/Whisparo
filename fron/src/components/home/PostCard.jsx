@@ -108,19 +108,18 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
     setEditedContent(content);
   };
 
-  const handleUpdate = async () => {
-    if (editedContent.trim() === content.trim() || !editedContent.trim()) {
-      setIsEditing(false);
-      return;
-    }
+  const handleSave = async () => {
+    if (!editedContent.trim()) return;
+    
     try {
       setIsSaving(true);
-      const response = await axios.put(`/api/posts/${postId}`, { body: editedContent });
-      toast.success('Post updated successfully');
-      if (onPostUpdated) {
-        onPostUpdated(response.data.post);
-      }
+      const response = await axios.put(`/api/posts/${postId}`, {
+        body: editedContent
+      });
+      
+      onPostUpdated(response.data.post);
       setIsEditing(false);
+      toast.success('Post updated successfully');
     } catch (error) {
       toast.error('Failed to update post');
     } finally {
@@ -131,88 +130,66 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
   const isOwnedByUser = currentUserEmail && authorEmail === currentUserEmail;
 
   return (
-    <motion.div 
-      className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
     >
-      {/* Header */}
-      <div className="p-4 border-b border-gray-100">
-        <div className="flex items-center justify-between">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-3">
-            <Avatar email={post?.authorEmail} />
+            <Avatar email={authorEmail} />
             <div>
-              <span className="font-medium text-gray-900">{post?.newUsername || 'Anonymous'}</span>
-              <span className="block text-xs text-gray-500">
+              <p className="font-medium text-gray-900">{author || 'Anonymous'}</p>
+              <p className="text-sm text-gray-500">
                 {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
-              </span>
+              </p>
             </div>
           </div>
-          <span className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 rounded-full">
-            {category}
-          </span>
+          {category && (
+            <span className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 rounded-full">
+              {category}
+            </span>
+          )}
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="p-4">
-        <AnimatePresence mode="wait">
+        <div className="mt-2">
           {isEditing ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
+            <div className="space-y-3">
               <textarea
                 value={editedContent}
                 onChange={(e) => setEditedContent(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 rows="4"
               />
-              <div className="flex justify-end space-x-2 mt-2">
-                <button
+              <div className="flex justify-end space-x-2">
+                <motion.button
                   onClick={handleCancelEdit}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  whileTap={{ scale: 0.95 }}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
                 >
-                  <FaTimes />
-                </button>
-                <button
-                  onClick={handleUpdate}
-                  disabled={isSaving}
-                  className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                    isSaving ? 'bg-blue-400' : 'bg-blue-500 hover:bg-blue-600'
+                  Cancel
+                </motion.button>
+                <motion.button
+                  onClick={handleSave}
+                  disabled={isSaving || !editedContent.trim()}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-4 py-2 text-white rounded-xl transition-colors ${
+                    isSaving || !editedContent.trim()
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
                   }`}
                 >
-                  {isSaving ? <FaSave className="animate-spin" /> : <FaSave />}
-                </button>
+                  {isSaving ? 'Saving...' : 'Save'}
+                </motion.button>
               </div>
-            </motion.div>
+            </div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-4"
-            >
-              <p className="text-gray-700 whitespace-pre-wrap">{content}</p>
-              {post.image?.url && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mt-2"
-                >
-                  <img
-                    src={post.image.url}
-                    alt="Post attachment"
-                    className="max-h-96 w-full object-contain rounded-xl"
-                  />
-                </motion.div>
-              )}
-            </motion.div>
+            <p className="text-gray-800 whitespace-pre-wrap break-words">{content}</p>
           )}
-        </AnimatePresence>
+        </div>
       </div>
 
-      {/* Actions */}
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -290,14 +267,14 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[80vh] overflow-hidden"
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-hidden flex flex-col touch-none"
               onClick={e => e.stopPropagation()}
             >
-              <div className="p-4 border-b border-gray-200">
-                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-center">Comments</h3>
-              </div>
-              <CommentList postId={postId} isOpen={showComments} onClose={() => setShowComments(false)} />
+              <CommentList 
+                postId={postId} 
+                isOpen={showComments} 
+                onClose={() => setShowComments(false)} 
+              />
             </motion.div>
           </motion.div>
         )}

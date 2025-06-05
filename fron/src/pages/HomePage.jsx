@@ -32,7 +32,8 @@ const HomePage = () => {
       setPosts(shuffledPosts);
       setCache('homePosts', shuffledPosts, 5 * 60 * 1000); // Cache for 5 minutes
       setError(null);
-    } catch {
+    } catch (error) {
+      console.error('Error fetching posts:', error);
       setError('Failed to load posts.');
     } finally {
       setLoading(false);
@@ -51,24 +52,37 @@ const HomePage = () => {
       const response = await axios.get('/api/auth/check');
       setCurrentUserEmail(response.data.user.email);
       setCache('userProfile', response.data.user, 5 * 60 * 1000); // Cache for 5 minutes
-    } catch {
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
       setCurrentUserEmail(null);
     }
   };
 
+  // Initial data fetch
   useEffect(() => {
-    fetchUserProfile();
-    fetchPosts();
+    const loadData = async () => {
+      await Promise.all([
+        fetchUserProfile(),
+        fetchPosts()
+      ]);
+    };
+    loadData();
+  }, []); // Only run on mount
+
+  // Handle refresh trigger
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      fetchPosts(true);
+      fetchUserProfile(true);
+    }
   }, [refreshTrigger]);
 
   const handleRefresh = async () => {
     if (loading || isRefreshing) return;
     
     setIsRefreshing(true);
-    await fetchPosts(true); // Force refresh
-    await fetchUserProfile(true); // Force refresh
-    setIsRefreshing(false);
     setRefreshTrigger(prev => prev + 1);
+    setIsRefreshing(false);
   };
 
   const handlePostDeleted = (deletedPostId) => {
