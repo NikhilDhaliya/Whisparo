@@ -278,11 +278,13 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
       {/* Comments Modal */}
       <AnimatePresence>
         {showComments && (
-          <CommentList 
-            postId={postId} 
-            isOpen={showComments}
-            onClose={() => setShowComments(false)}
-          />
+          <div className="mt-4">
+            <CommentList 
+              postId={postId} 
+              isOpen={true}
+              onClose={() => setShowComments(false)}
+            />
+          </div>
         )}
       </AnimatePresence>
     </motion.div>
