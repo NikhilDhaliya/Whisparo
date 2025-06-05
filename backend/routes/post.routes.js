@@ -14,19 +14,21 @@ import { upload } from "../config/cloudinary.js";
 
 const router = express.Router();
 
+// Apply setUsernameMiddleware to all routes
+router.use(setUsernameMiddleware);
+
 // Get trending posts (must be before /:id routes)
 router.get("/trending", getTrendingPosts);
 
-router.get("/", setUsernameMiddleware, getAllPosts);
-router.get("/:id", setUsernameMiddleware, getPostById);
+// Public routes
+router.get("/", getAllPosts);
+router.get("/:id", getPostById);
 
-// Vote routes
+// Protected routes
+router.post("/create", authMiddleware, upload.single('image'), createPost);
+router.put("/:id", authMiddleware, updatePost);
+router.delete("/:id", authMiddleware, deletePost);
 router.post("/:id/vote", authMiddleware, votePost);
 router.get("/:id/vote-status", authMiddleware, getVoteStatus);
-
-// Create post with image upload
-router.post("/create", authMiddleware, setUsernameMiddleware, upload.single('image'), createPost);
-router.put("/:id", authMiddleware, setUsernameMiddleware, updatePost);
-router.delete("/:id", authMiddleware, setUsernameMiddleware, deletePost);
 
 export default router;

@@ -199,9 +199,15 @@ export const deletePost = async (req, res) => {
       await cloudinary.uploader.destroy(post.image.public_id);
     }
 
+    // Delete all comments associated with this post
+    await Comment.deleteMany({ postId: id });
+
+    // Delete the post
     await Post.findByIdAndDelete(id);
-    res.status(200).json({ message: "Post deleted successfully" });
+    
+    res.status(200).json({ message: "Post and associated comments deleted successfully" });
   } catch (error) {
+    console.error('Error deleting post:', error);
     res.status(500).json({ message: error.message });
   }
 };

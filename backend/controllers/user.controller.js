@@ -21,14 +21,23 @@ const usernameCookieOptions = {
     sameSite: 'Lax'
 };
 
-const adjectives = ['cool', 'fast', 'brave', 'smart', 'mysterious'];
-const animals = ['tiger', 'panda', 'falcon', 'otter', 'wolf'];
+const adjectives = [
+  'silly', 'wacky', 'zany', 'goofy', 'quirky',
+  'dizzy', 'bouncy', 'jumpy', 'wiggly', 'buzzy',
+  'fuzzy', 'fluffy', 'sparky', 'snappy', 'zippy'
+];
+
+const animals = [
+  'cat', 'dog', 'fox', 'owl', 'bat',
+  'bee', 'pig', 'cow', 'rat', 'duck',
+  'frog', 'bear', 'lion', 'tiger', 'wolf'
+];
 
 const generateFriendlyUsername = () => {
     const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
     const animal = animals[Math.floor(Math.random() * animals.length)];
-    const id = uuidv4().split('-')[0];
-    return `${adjective}_${animal}_${id}`; // e.g., brave_otter_3f1a2c9e
+    const id = uuidv4().split('-')[0].slice(0, 4); // Shorter ID
+    return `${adjective}_${animal}_${id}`;
 };
 
 const setUsernameCookie = (res, username) => {

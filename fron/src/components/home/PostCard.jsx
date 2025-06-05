@@ -104,7 +104,7 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditedContent(content); // Reset content
+    setEditedContent(content);
   };
 
   const handleUpdate = async () => {
@@ -130,128 +130,143 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
   const isOwnedByUser = currentUserEmail && authorEmail === currentUserEmail;
 
   return (
-    <div className='h-auto w-full bg-white rounded-lg shadow-md p-5 flex flex-col hover:shadow-lg transition-shadow duration-300'>
-        <div className="postHeader flex justify-between">
-            <div className="user flex gap-2 items-center">
-                <Avatar email={post?.authorEmail} />
-                <span className="font-medium">{post?.newUsername || 'Anonymous'}</span>
+    <div className='bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden'>
+      {/* Header */}
+      <div className="p-4 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Avatar email={post?.authorEmail} />
+            <div>
+              <span className="font-medium text-gray-900">{post?.newUsername || 'Anonymous'}</span>
+              <span className="block text-xs text-gray-500">
+                {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
+              </span>
             </div>
-            <div className="timeStamp text-gray-500 text-sm">
-                <span>{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
-            </div>
+          </div>
+          <span className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 rounded-full">
+            {category}
+          </span>
         </div>
-        <div className="postContent mt-2 px-2">
-            {isEditing ? (
-              <textarea
-                value={editedContent}
-                onChange={(e) => setEditedContent(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                rows="4"
-              />
-            ) : (
+      </div>
+
+      {/* Content */}
+      <div className="p-4">
+        {isEditing ? (
+          <textarea
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            rows="4"
+          />
+        ) : (
+          <div className="space-y-4">
+            <p className="text-gray-700 whitespace-pre-wrap">{content}</p>
+            {post.image?.url && (
+              <div className="mt-2">
+                <img
+                  src={post.image.url}
+                  alt="Post attachment"
+                  className="max-h-96 w-full object-contain rounded-lg"
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={handleVote}
+              disabled={isVoting}
+              className={`flex items-center space-x-1 px-3 py-1.5 rounded-full transition-all duration-200 ${
+                userVoteStatus === 'like' 
+                  ? 'bg-blue-50 text-blue-600' 
+                  : 'text-gray-600 hover:bg-gray-100'
+              } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <FaThumbsUp className={`${userVoteStatus === 'like' ? 'text-blue-600' : ''}`} />
+              <span className="text-sm font-medium">{likes}</span>
+            </button>
+            
+            <button 
+              onClick={() => setShowComments(true)}
+              className="flex items-center space-x-1 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all duration-200"
+            >
+              <FaComment />
+              <span className="text-sm">{commentsCount || 0}</span>
+            </button>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            {isOwnedByUser && !isEditing && (
               <>
-                <p className="text-gray-700">{content}</p>
-                {post.image?.url && (
-                  <div className="mt-4">
-                    <img
-                      src={post.image.url}
-                      alt="Post attachment"
-                      className="max-h-96 w-full object-contain rounded-lg"
-                    />
-                  </div>
-                )}
+                <button 
+                  onClick={handleEdit}
+                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+                >
+                  <FaEdit />
+                </button>
+                <button 
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className={`p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 ${
+                    isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <FaTrash className={isDeleting ? 'animate-spin' : ''} />
+                </button>
               </>
             )}
+
+            {isEditing && (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleUpdate}
+                  disabled={!editedContent.trim() || isSaving}
+                  className={`flex items-center space-x-1 px-3 py-1.5 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors ${
+                    !editedContent.trim() || isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <FaSave /> Save
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="flex items-center space-x-1 px-3 py-1.5 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors"
+                >
+                  <FaTimes /> Cancel
+                </button>
+              </div>
+            )}
+
+            {!isEditing && (
+              <button 
+                onClick={handleReport}
+                className="p-2 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-all duration-200"
+              >
+                <FaFlag />
+              </button>
+            )}
+          </div>
         </div>
-        <div className="postDetails flex justify-between mt-auto pt-3 border-t border-gray-100">
-            <div className="left">
-                <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm">
-                    {category}
-                </span>
-            </div>
-            <div className="right flex gap-4 items-center">
-                {!isEditing && (
-                  <button 
-                      onClick={handleVote}
-                      disabled={isVoting}
-                      className={`flex items-center gap-1 transition-all duration-200 ${
-                        userVoteStatus === 'like' 
-                          ? 'text-blue-500 scale-110' 
-                          : 'text-gray-600 hover:text-blue-500 hover:scale-105'
-                      } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                      <FaThumbsUp className="transition-transform duration-200" />
-                      <span className="text-sm font-medium">{likes}</span>
-                  </button>
-                )}
-                
-                {!isEditing && (
-                  <button 
-                      onClick={() => setShowComments(true)}
-                      className="flex items-center gap-1 text-gray-600 hover:text-blue-500 transition-colors duration-200"
-                  >
-                      <FaComment className="hover:scale-110 transition-transform duration-200" />
-                      <span className="text-sm">{commentsCount || 0}</span>
-                  </button>
-                )}
-
-                {isOwnedByUser && !isEditing && (
-                  <button 
-                      onClick={handleEdit}
-                      className="text-gray-600 hover:text-blue-500 transition-colors duration-200"
-                  >
-                      <FaEdit className="hover:scale-110 transition-transform duration-200" />
-                  </button>
-                )}
-
-                {isOwnedByUser && !isEditing && (
-                   <button 
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                      className={`text-gray-600 hover:text-red-500 transition-colors duration-200 ${
-                        isDeleting ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                  >
-                      <FaTrash className={`hover:scale-110 transition-transform duration-200 ${isDeleting ? 'animate-spin' : ''}`} />
-                  </button>
-                )}
-
-                {isEditing && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleUpdate}
-                      disabled={!editedContent.trim() || isSaving}
-                      className={`flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors ${
-                        !editedContent.trim() || isSaving ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      {isSaving ? 'Saving...' : ''} <FaSave /> Save
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                       className="flex items-center gap-1 px-3 py-1 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors"
-                    >
-                      <FaTimes /> Cancel
-                    </button>
-                  </div>
-                )}
-
-                {!isEditing && (
-                   <button 
-                    onClick={handleReport}
-                    className="text-gray-600 hover:text-yellow-500 transition-colors duration-200"
-                  >
-                      <FaFlag className="hover:scale-110 transition-transform duration-200" />
-                  </button>
-                )}
-            </div>
-        </div>
-        
-        <CommentList 
-            postId={postId} 
-            isOpen={showComments} 
-            onClose={() => setShowComments(false)} 
-        />
+      </div>
+      
+      <CommentList 
+        postId={postId} 
+        isOpen={showComments} 
+        onClose={() => setShowComments(false)} 
+      />
     </div>
   )
 }
