@@ -9,6 +9,7 @@ import {
 } from "../controllers/post.controller.js";
 import { votePost, getVoteStatus } from "../controllers/vote.controller.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
+import { setUsernameMiddleware } from "../middlewares/setUsername.js";
 import { upload } from "../config/cloudinary.js";
 
 const router = express.Router();
@@ -21,10 +22,11 @@ router.get("/", getAllPosts);
 router.get("/:id", getPostById);
 
 // Protected routes
-router.post("/create", authMiddleware, upload.single('image'), createPost);
-router.put("/:id", authMiddleware, updatePost);
-router.delete("/:id", authMiddleware, deletePost);
-router.post("/:id/vote", authMiddleware, votePost);
-router.get("/:id/vote-status", authMiddleware, getVoteStatus);
+router.use(authMiddleware, setUsernameMiddleware);
+router.post("/create", upload.single('image'), createPost);
+router.put("/:id", updatePost);
+router.delete("/:id", deletePost);
+router.post("/:id/vote", votePost);
+router.get("/:id/vote-status", getVoteStatus);
 
 export default router;
