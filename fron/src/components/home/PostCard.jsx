@@ -278,28 +278,11 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
       {/* Comments Modal */}
       <AnimatePresence>
         {showComments && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-            onClick={() => setShowComments(false)}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[80vh] overflow-hidden"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="p-4 border-b border-gray-200">
-                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-center">Comments</h3>
-              </div>
-              <CommentList postId={postId} isOpen={showComments} onClose={() => setShowComments(false)} />
-            </motion.div>
-          </motion.div>
+          <CommentList 
+            postId={postId} 
+            isOpen={showComments}
+            onClose={() => setShowComments(false)}
+          />
         )}
       </AnimatePresence>
     </motion.div>
