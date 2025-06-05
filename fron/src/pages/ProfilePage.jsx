@@ -44,24 +44,26 @@ const ProfilePage = () => {
           }
         }
 
-        const profileRes = await axios.get('/api/auth/check');
-        setUser(profileRes.data.user);
-        // Cache user profile
-        setCacheData('user_profile', profileRes.data.user);
+        // If no cache or missing data, fetch from API
+        const [profileRes, postsRes, commentsRes] = await Promise.all([
+          axios.get('/api/auth/check'),
+          axios.get('/api/posts?authorEmail=' + encodeURIComponent(cachedUser?.email || '')),
+          axios.get('/api/comments/user')
+        ]);
 
-        const postsRes = await axios.get('/api/posts?authorEmail=' + encodeURIComponent(profileRes.data.user.email));
+        const userData = profileRes.data.user;
+        setUser(userData);
+        setCacheData('user_profile', userData);
+
         const postsWithUsernames = postsRes.data.posts.map(post => ({
           ...post,
           username: post.newUsername || post.authorUsername || 'Anonymous'
         }));
         setUserPosts(postsWithUsernames);
-        // Cache user posts
-        setCacheData(`user_posts_${profileRes.data.user.email}`, postsWithUsernames);
+        setCacheData(`user_posts_${userData.email}`, postsWithUsernames);
 
-        const commentsRes = await axios.get('/api/comments/user');
         setUserComments(commentsRes.data.comments);
-        // Cache user comments
-        setCacheData(`user_comments_${profileRes.data.user.email}`, commentsRes.data.comments);
+        setCacheData(`user_comments_${userData.email}`, commentsRes.data.comments);
 
         setError(null);
       } catch (error) {
