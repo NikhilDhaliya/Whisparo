@@ -3,14 +3,16 @@ import axios from 'axios';
 import { formatDistanceToNow } from 'date-fns';
 import Avatar from '../common/Avatar';
 import CommentForm from './CommentForm';
-import { FaThumbsUp, FaReply, FaTimes } from 'react-icons/fa';
+import { FaThumbsUp, FaReply, FaTimes, FaTrash } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
-const Comment = ({ comment, postId, onCommentAdded }) => {
+const Comment = ({ comment, postId, onCommentAdded, currentUserEmail }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [likes, setLikes] = useState(comment.votes?.score || 0);
   const [userVote, setUserVote] = useState(comment.votes?.userVote || null);
   const [isVoting, setIsVoting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleVote = async () => {
     if (isVoting) return;
@@ -22,10 +24,32 @@ const Comment = ({ comment, postId, onCommentAdded }) => {
       setUserVote(response.data.comment.userVote);
     } catch (error) {
       console.error('Error voting on comment:', error);
+      toast.error('Failed to vote on comment');
     } finally {
       setIsVoting(false);
     }
   };
+
+  const handleDelete = async () => {
+    if (isDeleting) return;
+    if (!window.confirm('Are you sure you want to delete this comment?')) return;
+
+    try {
+      setIsDeleting(true);
+      await axios.delete(`/api/comments/${comment._id}`);
+      toast.success('Comment deleted successfully');
+      if (onCommentAdded) {
+        onCommentAdded(null, true); // Pass true to indicate deletion
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast.error('Failed to delete comment');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const isOwnedByUser = currentUserEmail && comment.authorEmail === currentUserEmail;
 
   return (
     <motion.div 
@@ -40,9 +64,23 @@ const Comment = ({ comment, postId, onCommentAdded }) => {
             <Avatar email={comment.authorEmail} />
             <span className="font-medium text-gray-900">{comment.newUsername || 'Anonymous'}</span>
           </div>
-          <span className="text-gray-500 text-sm">
-            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 text-sm">
+              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+            </span>
+            {isOwnedByUser && (
+              <motion.button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                whileTap={{ scale: 0.95 }}
+                className={`p-1.5 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-full transition-colors ${
+                  isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                <FaTrash size={14} />
+              </motion.button>
+            )}
+          </div>
         </div>
         
         <p className="mt-2 text-gray-700">{comment.body}</p>
@@ -104,6 +142,7 @@ const Comment = ({ comment, postId, onCommentAdded }) => {
               comment={reply}
               postId={postId}
               onCommentAdded={onCommentAdded}
+              currentUserEmail={currentUserEmail}
             />
           ))}
         </div>
@@ -120,6 +159,7 @@ const CommentList = ({ postId, isOpen, onClose }) => {
   const [hasMore, setHasMore] = useState(true);
   const [startY, setStartY] = useState(null);
   const [currentY, setCurrentY] = useState(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const modalRef = useRef(null);
 
   const fetchComments = async (page) => {
@@ -143,6 +183,14 @@ const CommentList = ({ postId, isOpen, onClose }) => {
       setComments([]);
       setHasMore(true);
       fetchComments(1);
+      // Get current user's email
+      axios.get('/api/auth/check')
+        .then(response => {
+          setCurrentUserEmail(response.data.user.email);
+        })
+        .catch(error => {
+          console.error('Error fetching user:', error);
+        });
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
     } else {
@@ -154,8 +202,19 @@ const CommentList = ({ postId, isOpen, onClose }) => {
     };
   }, [postId, isOpen]);
 
-  const handleCommentAdded = (newComment) => {
-    fetchComments(1);
+  const handleCommentAdded = (newComment, isDeleted = false) => {
+    if (isDeleted) {
+      // Remove the deleted comment from the list
+      setComments(prevComments => 
+        prevComments.filter(comment => 
+          comment._id !== newComment && 
+          !comment.replies?.some(reply => reply._id === newComment)
+        )
+      );
+    } else {
+      // Refresh comments to show the new one
+      fetchComments(1);
+    }
   };
 
   const handleLoadMore = () => {
@@ -277,6 +336,7 @@ const CommentList = ({ postId, isOpen, onClose }) => {
                           comment={comment}
                           postId={postId}
                           onCommentAdded={handleCommentAdded}
+                          currentUserEmail={currentUserEmail}
                         />
                       ))
                     )}

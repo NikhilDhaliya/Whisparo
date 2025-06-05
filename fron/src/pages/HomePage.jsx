@@ -6,6 +6,7 @@ import { FaSyncAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommentList from '../components/comments/CommentList';
 import { useCache } from '../context/CacheContext';
+import { useLocation } from 'react-router-dom';
 
 const HomePage = () => {
   const [posts, setPosts] = useState([]);
@@ -17,23 +18,27 @@ const HomePage = () => {
   const [activeCommentPost, setActiveCommentPost] = useState(null);
   const containerRef = useRef(null);
   const { getCacheData, setCacheData } = useCache();
+  const location = useLocation();
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
       // Check cache first
       const cachedPosts = getCacheData('home_posts');
-      if (cachedPosts) {
+      if (cachedPosts && !location.state?.refresh) {
         setPosts(cachedPosts);
         setLoading(false);
         return;
       }
 
       const response = await axios.get('/api/posts');
-      const shuffledPosts = response.data.posts.sort(() => Math.random() - 0.5);
-      setPosts(shuffledPosts);
+      // Sort posts by creation date, newest first
+      const sortedPosts = response.data.posts.sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setPosts(sortedPosts);
       // Cache the posts
-      setCacheData('home_posts', shuffledPosts);
+      setCacheData('home_posts', sortedPosts);
       setError(null);
     } catch {
       setError('Failed to load posts.');
@@ -63,7 +68,11 @@ const HomePage = () => {
   useEffect(() => {
     fetchUserProfile();
     fetchPosts();
-  }, [refreshTrigger]);
+    // Clear the refresh state after handling it
+    if (location.state?.refresh) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [refreshTrigger, location.state?.refresh]);
 
   const handleRefresh = async () => {
     if (loading || isRefreshing) return;

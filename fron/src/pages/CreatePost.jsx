@@ -57,7 +57,8 @@ const CreatePost = () => {
       });
 
       toast.success('Post created successfully');
-      navigate('/');
+      localStorage.removeItem('home_posts');
+      navigate('/', { state: { refresh: true } });
     } catch (err) {
       console.error('Error creating post:', {
         message: err.message,

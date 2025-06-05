@@ -14,10 +14,15 @@ const ProfilePage = () => {
   const [error, setError] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [userPosts, setUserPosts] = useState([]);
+  const [userComments, setUserComments] = useState([]);
   const [editingPostId, setEditingPostId] = useState(null);
+  const [editingCommentId, setEditingCommentId] = useState(null);
   const [editedPostContent, setEditedPostContent] = useState('');
+  const [editedCommentContent, setEditedCommentContent] = useState('');
   const [isSavingPost, setIsSavingPost] = useState(false);
+  const [isSavingComment, setIsSavingComment] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [isDeletingComment, setIsDeletingComment] = useState(false);
   const [expandedPostId, setExpandedPostId] = useState(null);
   const { getCacheData, setCacheData } = useCache();
 
@@ -30,8 +35,10 @@ const ProfilePage = () => {
           setUser(cachedUser);
           // Check cache for user posts
           const cachedPosts = getCacheData(`user_posts_${cachedUser.email}`);
-          if (cachedPosts) {
+          const cachedComments = getCacheData(`user_comments_${cachedUser.email}`);
+          if (cachedPosts && cachedComments) {
             setUserPosts(cachedPosts);
+            setUserComments(cachedComments);
             setLoading(false);
             return;
           }
@@ -46,6 +53,12 @@ const ProfilePage = () => {
         setUserPosts(postsRes.data.posts);
         // Cache user posts
         setCacheData(`user_posts_${profileRes.data.user.email}`, postsRes.data.posts);
+
+        const commentsRes = await axios.get('/api/comments/user');
+        setUserComments(commentsRes.data.comments);
+        // Cache user comments
+        setCacheData(`user_comments_${profileRes.data.user.email}`, commentsRes.data.comments);
+
         setError(null);
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -68,6 +81,7 @@ const ProfilePage = () => {
       // Clear cache on logout
       setCacheData('user_profile', null);
       setCacheData(`user_posts_${user.email}`, null);
+      setCacheData(`user_comments_${user.email}`, null);
       navigate('/login');
     } catch (error) {
       console.error('Error logging out:', error);
@@ -106,6 +120,35 @@ const ProfilePage = () => {
     }
   };
 
+  const handleUpdateComment = async (commentId) => {
+    if (!editedCommentContent.trim() || isSavingComment) return;
+
+    try {
+      setIsSavingComment(true);
+      await axios.put(`/api/comments/${commentId}`, {
+        body: editedCommentContent
+      });
+
+      setUserComments(prevComments => {
+        const newComments = prevComments.map(comment => 
+          comment._id === commentId ? { ...comment, body: editedCommentContent } : comment
+        );
+        // Update cache
+        setCacheData(`user_comments_${user.email}`, newComments);
+        return newComments;
+      });
+
+      setEditingCommentId(null);
+      setEditedCommentContent('');
+      toast.success('Comment updated successfully');
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      toast.error('Failed to update comment');
+    } finally {
+      setIsSavingComment(false);
+    }
+  };
+
   const handleDeletePost = async (postId) => {
     if (isDeletingPost) return;
 
@@ -129,14 +172,44 @@ const ProfilePage = () => {
     }
   };
 
+  const handleDeleteComment = async (commentId) => {
+    if (isDeletingComment) return;
+
+    try {
+      setIsDeletingComment(true);
+      await axios.delete(`/api/comments/${commentId}`);
+
+      setUserComments(prevComments => {
+        const newComments = prevComments.filter(comment => comment._id !== commentId);
+        // Update cache
+        setCacheData(`user_comments_${user.email}`, newComments);
+        return newComments;
+      });
+
+      toast.success('Comment deleted successfully');
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast.error('Failed to delete comment');
+    } finally {
+      setIsDeletingComment(false);
+    }
+  };
+
   const handleEditPost = (post) => {
     setEditingPostId(post.id);
     setEditedPostContent(post.body);
   };
 
+  const handleEditComment = (comment) => {
+    setEditingCommentId(comment._id);
+    setEditedCommentContent(comment.body);
+  };
+
   const handleCancelEdit = () => {
     setEditingPostId(null);
+    setEditingCommentId(null);
     setEditedPostContent('');
+    setEditedCommentContent('');
   };
 
   const toggleComments = (postId) => {
@@ -196,7 +269,7 @@ const ProfilePage = () => {
         </div>
 
         {/* Posts Section */}
-        <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
+        <div className="bg-white shadow-xl rounded-2xl overflow-hidden mb-6">
           <div className="p-4 sm:p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">Your Posts</h2>
           </div>
@@ -330,6 +403,102 @@ const ProfilePage = () => {
                           />
                         </div>
                       )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Your Comments</h2>
+          </div>
+
+          <div className="p-4 sm:p-6">
+            <div className="space-y-4">
+              {userComments.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-base text-gray-500">No comments yet</p>
+                </div>
+              ) : (
+                userComments.map((comment) => (
+                  <div
+                    key={comment._id}
+                    className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex flex-col space-y-4">
+                      <div className="flex-1">
+                        {editingCommentId === comment._id ? (
+                          <textarea
+                            value={editedCommentContent}
+                            onChange={(e) => setEditedCommentContent(e.target.value)}
+                            className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                            rows="3"
+                          />
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-gray-800 text-sm break-words">{comment.body}</p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <span>On post:</span>
+                              <button
+                                onClick={() => navigate(`/post/${comment.postId}`)}
+                                className="text-blue-600 hover:text-blue-700 hover:underline"
+                              >
+                                {comment.postTitle}
+                              </button>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-end space-x-2">
+                        {editingCommentId === comment._id ? (
+                          <>
+                            <button
+                              onClick={() => handleUpdateComment(comment._id)}
+                              disabled={!editedCommentContent.trim() || isSavingComment}
+                              className={`p-2 rounded-lg ${
+                                !editedCommentContent.trim() || isSavingComment
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-green-100 text-green-600 hover:bg-green-200'
+                              }`}
+                            >
+                              <FaSave />
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              disabled={isSavingComment}
+                              className="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            >
+                              <FaTimes />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => handleEditComment(comment)}
+                              className="p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteComment(comment._id)}
+                              disabled={isDeletingComment}
+                              className={`p-2 rounded-lg text-gray-600 hover:bg-red-100 hover:text-red-600 ${
+                                isDeletingComment ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                            >
+                              <FaTrash />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
