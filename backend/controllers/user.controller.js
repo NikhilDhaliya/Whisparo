@@ -100,14 +100,39 @@ export const loginUser = async (req, res) => {
         existingUser.isLoggedIn = true;
         await existingUser.save();
 
-        const username = generateFriendlyUsername();
-        setUsernameCookie(res, username);
+        // Check if username cookie exists and is valid
+        const usernameCookie = req.cookies.username;
+        let username;
+        let shouldUpdateUsername = false;
+        
+        if (usernameCookie) {
+            try {
+                const parsed = JSON.parse(usernameCookie);
+                const age = Date.now() - parsed.timestamp;
+                if (age < 30 * 60 * 1000) { // 30 minutes
+                    username = parsed.username;
+                } else {
+                    shouldUpdateUsername = true;
+                }
+            } catch (e) {
+                console.error('Error parsing username cookie:', e);
+                shouldUpdateUsername = true;
+            }
+        } else {
+            shouldUpdateUsername = true;
+        }
 
-        // Update all user's posts with new username
-        await Post.updateMany(
-            { authorEmail: email },
-            { authorUsername: username }
-        );
+        // Generate new username if needed
+        if (shouldUpdateUsername) {
+            username = generateFriendlyUsername();
+            setUsernameCookie(res, username);
+            
+            // Update all user's posts with new username
+            await Post.updateMany(
+                { authorEmail: email },
+                { authorUsername: username }
+            );
+        }
 
         res.status(200).cookie('auth', token, cookieOptions).json({
             user: {

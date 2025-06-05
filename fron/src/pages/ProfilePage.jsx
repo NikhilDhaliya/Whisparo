@@ -29,31 +29,17 @@ const ProfilePage = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Check cache first
-        const cachedUser = getCacheData('user_profile');
-        if (cachedUser) {
-          setUser(cachedUser);
-          // Check cache for user posts
-          const cachedPosts = getCacheData(`user_posts_${cachedUser.email}`);
-          const cachedComments = getCacheData(`user_comments_${cachedUser.email}`);
-          if (cachedPosts && cachedComments) {
-            setUserPosts(cachedPosts);
-            setUserComments(cachedComments);
-            setLoading(false);
-            return;
-          }
-        }
-
-        // If no cache or missing data, fetch from API
-        const [profileRes, postsRes, commentsRes] = await Promise.all([
-          axios.get('/api/auth/check'),
-          axios.get('/api/posts?authorEmail=' + encodeURIComponent(cachedUser?.email || '')),
-          axios.get('/api/comments/user')
-        ]);
-
+        // First fetch user data
+        const profileRes = await axios.get('/api/auth/check');
         const userData = profileRes.data.user;
         setUser(userData);
         setCacheData('user_profile', userData);
+
+        // Then fetch posts and comments using the user's email
+        const [postsRes, commentsRes] = await Promise.all([
+          axios.get('/api/posts?authorEmail=' + encodeURIComponent(userData.email)),
+          axios.get('/api/comments/user')
+        ]);
 
         const postsWithUsernames = postsRes.data.posts.map(post => ({
           ...post,
