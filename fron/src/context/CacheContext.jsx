@@ -15,7 +15,7 @@ export const CacheProvider = ({ children }) => {
     }));
   };
 
-  const getCacheData = (key, maxAge = 5 * 60 * 1000) => { // 5 minutes default
+  const getCacheData = (key, maxAge = 30 * 60 * 1000) => { // 30 minutes default to match username cookie
     const cached = cache[key];
     if (!cached) return null;
     

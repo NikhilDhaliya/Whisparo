@@ -30,14 +30,34 @@ export const AuthProvider = ({ children }) => {
           // Set the token in axios headers
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
-          // Verify token and get user data
+          // Check if we have a valid cached user
+          const cachedUser = localStorage.getItem('cachedUser');
+          if (cachedUser) {
+            const { user, timestamp } = JSON.parse(cachedUser);
+            // Only use cache if it's less than 30 minutes old
+            if (Date.now() - timestamp < 30 * 60 * 1000) {
+              setUser(user);
+              setIsAuthenticated(true);
+              setLoading(false);
+              return;
+            }
+          }
+          
+          // If no valid cache, verify token and get user data
           const response = await axios.get('/api/auth/check');
           setUser(response.data.user);
           setIsAuthenticated(true);
+          
+          // Cache the user data
+          localStorage.setItem('cachedUser', JSON.stringify({
+            user: response.data.user,
+            timestamp: Date.now()
+          }));
         } catch (error) {
           console.error('Auth check failed:', error);
           // If token is invalid, clear everything
           localStorage.removeItem('token');
+          localStorage.removeItem('cachedUser');
           delete axios.defaults.headers.common['Authorization'];
           setUser(null);
           setIsAuthenticated(false);
@@ -58,6 +78,12 @@ export const AuthProvider = ({ children }) => {
       // Store token and set axios header
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // Cache the user data
+      localStorage.setItem('cachedUser', JSON.stringify({
+        user,
+        timestamp: Date.now()
+      }));
       
       setUser(user);
       setIsAuthenticated(true);
@@ -97,6 +123,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       // Clear everything regardless of backend response
       localStorage.removeItem('token');
+      localStorage.removeItem('cachedUser');
       delete axios.defaults.headers.common['Authorization'];
       setUser(null);
       setIsAuthenticated(false);
