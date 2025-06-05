@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 import {React, useEffect, useState} from 'react'
 import Avatar from '../common/Avatar'
-import { FaThumbsUp, FaFlag, FaComment, FaEdit, FaTrash, FaSave, FaTimes } from 'react-icons/fa'
+import { FaThumbsUp, FaFlag, FaComment, FaEdit, FaTrash, FaSave, FaTimes, FaHeart, FaRegHeart } from 'react-icons/fa'
 import { formatDistanceToNow } from 'date-fns'
 import axios from 'axios'
 import CommentList from '../comments/CommentList'
@@ -29,31 +29,25 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
   const [editedContent, setEditedContent] = useState(content);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleVote = async () => {
     if (isVoting) return;
+    setIsVoting(true);
+    setError(null);
     
     try {
-      setIsVoting(true);
-      
-      const previousVoteStatus = userVoteStatus;
-      
-      if (previousVoteStatus === 'like') {
-        setLikes(prev => prev - 1);
-        setUserVoteStatus(null);
-      } else {
-        setLikes(prev => prev + 1);
-        setUserVoteStatus('like');
-      }
-
       const response = await axios.post(`/api/posts/${postId}/vote`);
-      setLikes(response.data.likes);
-      setUserVoteStatus(response.data.voteType);
-      toast.success(previousVoteStatus === 'like' ? 'Vote removed' : 'Vote added');
+      if (response.data.success) {
+        onPostUpdated({
+          ...post,
+          votes: response.data.votes,
+          userVote: response.data.userVote
+        });
+      }
     } catch (error) {
-      toast.error('Failed to process vote');
-      setUserVoteStatus(null);
-      setLikes(initialLikes || 0);
+      console.error('Error voting:', error);
+      setError(error.response?.data?.message || 'Failed to vote. Please try again.');
     } finally {
       setIsVoting(false);
     }
@@ -87,45 +81,49 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
 
     try {
       setIsDeleting(true);
-      await axios.delete(`/api/posts/${postId}`);
-      toast.success('Post deleted successfully');
-      if (onPostDeleted) {
+      const response = await axios.delete(`/api/posts/${postId}`);
+      if (response.data.success) {
         onPostDeleted(postId);
       }
     } catch (error) {
-      toast.error('Failed to delete post');
+      console.error('Error deleting post:', error);
+      setError(error.response?.data?.message || 'Failed to delete post. Please try again.');
       setIsDeleting(false);
     }
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-    setEditedContent(content);
+  const handleEdit = async () => {
+    if (!editedContent.trim()) {
+      setError('Post content cannot be empty');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const response = await axios.put(`/api/posts/${postId}`, {
+        content: editedContent
+      });
+      
+      if (response.data.success) {
+        onPostUpdated({
+          ...post,
+          content: editedContent
+        });
+        setIsEditing(false);
+        setError(null);
+        toast.success('Post updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating post:', error);
+      setError(error.response?.data?.message || 'Failed to update post. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditedContent(content);
-  };
-
-  const handleUpdate = async () => {
-    if (editedContent.trim() === content.trim() || !editedContent.trim()) {
-      setIsEditing(false);
-      return;
-    }
-    try {
-      setIsSaving(true);
-      const response = await axios.put(`/api/posts/${postId}`, { body: editedContent });
-      toast.success('Post updated successfully');
-      if (onPostUpdated) {
-        onPostUpdated(response.data.post);
-      }
-      setIsEditing(false);
-    } catch (error) {
-      toast.error('Failed to update post');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const isOwnedByUser = currentUserEmail && authorEmail === currentUserEmail;
@@ -177,7 +175,7 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
                   <FaTimes />
                 </button>
                 <button
-                  onClick={handleUpdate}
+                  onClick={handleEdit}
                   disabled={isSaving}
                   className={`px-4 py-2 text-white rounded-lg transition-colors ${
                     isSaving ? 'bg-blue-400' : 'bg-blue-500 hover:bg-blue-600'

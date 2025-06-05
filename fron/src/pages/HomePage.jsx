@@ -28,12 +28,16 @@ const HomePage = () => {
 
       setLoading(true);
       const response = await axios.get('/api/posts');
+      if (!response.data.posts) {
+        throw new Error('Invalid response format');
+      }
       const shuffledPosts = response.data.posts.sort(() => Math.random() - 0.5);
       setPosts(shuffledPosts);
       setCache('homePosts', shuffledPosts, 5 * 60 * 1000); // Cache for 5 minutes
       setError(null);
-    } catch {
-      setError('Failed to load posts.');
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      setError(error.response?.data?.message || 'Failed to load posts. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -49,31 +53,43 @@ const HomePage = () => {
       }
 
       const response = await axios.get('/api/auth/check');
+      if (!response.data.user) {
+        throw new Error('Invalid user data');
+      }
       setCurrentUserEmail(response.data.user.email);
       setCache('userProfile', response.data.user, 5 * 60 * 1000); // Cache for 5 minutes
-    } catch {
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
       setCurrentUserEmail(null);
     }
   };
 
   useEffect(() => {
-    fetchUserProfile();
-    fetchPosts();
-  }, [refreshTrigger]);
+    const loadData = async () => {
+      await fetchUserProfile();
+      await fetchPosts();
+    };
+    loadData();
+  }, [refreshTrigger]); // Add refreshTrigger as dependency
 
   const handleRefresh = async () => {
     if (loading || isRefreshing) return;
     
     setIsRefreshing(true);
-    await fetchPosts(true); // Force refresh
-    await fetchUserProfile(true); // Force refresh
-    setIsRefreshing(false);
-    setRefreshTrigger(prev => prev + 1);
+    try {
+      await fetchPosts(true); // Force refresh
+      await fetchUserProfile(true); // Force refresh
+    } catch (error) {
+      console.error('Error refreshing:', error);
+    } finally {
+      setIsRefreshing(false);
+      setRefreshTrigger(prev => prev + 1);
+    }
   };
 
   const handlePostDeleted = (deletedPostId) => {
     setPosts(prevPosts => {
-      const newPosts = prevPosts.filter(post => post.id !== deletedPostId);
+      const newPosts = prevPosts.filter(post => post._id !== deletedPostId);
       setCache('homePosts', newPosts, 5 * 60 * 1000); // Update cache
       return newPosts;
     });
@@ -82,7 +98,7 @@ const HomePage = () => {
   const handlePostUpdated = (updatedPost) => {
     setPosts(prevPosts => {
       const newPosts = prevPosts.map(post => 
-        post.id === updatedPost._id ? { ...post, content: updatedPost.body } : post
+        post._id === updatedPost._id ? { ...post, content: updatedPost.body } : post
       );
       setCache('homePosts', newPosts, 5 * 60 * 1000); // Update cache
       return newPosts;
