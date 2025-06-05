@@ -7,33 +7,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          light: '#007AFF',
-          main: '#0066CC',
-          dark: '#004999',
+        blue: {
+          50: '#E3F2FD',
+          100: '#BBDEFB',
+          200: '#90CAF9',
+          300: '#64B5F6',
+          400: '#42A5F5',
+          500: '#2196F3', // iOS blue
+          600: '#1E88E5',
+          700: '#1976D2',
+          800: '#1565C0',
+          900: '#0D47A1',
         },
-        secondary: {
-          light: '#5856D6',
-          main: '#4A4ACF',
-          dark: '#3A3AA8',
-        },
-        success: {
-          light: '#34C759',
-          main: '#2FB350',
-          dark: '#248F40',
-        },
-        warning: {
-          light: '#FF9500',
-          main: '#E68600',
-          dark: '#B36A00',
-        },
-        error: {
-          light: '#FF3B30',
-          main: '#E6352B',
-          dark: '#B32A22',
-        },
-        neutral: {
-          50: '#F2F2F7',
+        gray: {
+          50: '#F2F2F7',  // iOS light gray
           100: '#E5E5EA',
           200: '#D1D1D6',
           300: '#C7C7CC',
