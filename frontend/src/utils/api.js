@@ -71,4 +71,46 @@ export const postService = {
   },
 };
 
+export const commentService = {
+  // Get comments for a post
+  getComments: async (postId) => {
+    try {
+      const response = await api.get(`/posts/${postId}/comments`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Create a new comment
+  createComment: async (postId, data) => {
+    try {
+      const response = await api.post(`/posts/${postId}/comments`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Vote on a comment
+  voteComment: async (commentId, voteType) => {
+    try {
+      const response = await api.post(`/comments/${commentId}/vote`, { voteType });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Delete a comment
+  deleteComment: async (commentId) => {
+    try {
+      const response = await api.delete(`/comments/${commentId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  }
+};
+
 export default api;

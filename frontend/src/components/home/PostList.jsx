@@ -28,34 +28,15 @@ const PostList = ({
   
   const handleUpvote = async (postId) => {
     try {
-      await postService.votePost(postId, 'upvote');
+      const response = await postService.votePost(postId, 'upvote');
       setLocalPosts(prevPosts => 
         prevPosts.map(post => {
           if (post.id === postId) {
-            // If already upvoted, remove the upvote
-            if (post.userVote === 'upvote') {
-              return {
-                ...post,
-                likes: post.likes - 1,
-                userVote: null,
-              };
-            }
-            
-            // If downvoted, switch to upvote
-            if (post.userVote === 'downvote') {
-              return {
-                ...post,
-                likes: post.likes + 1,
-                dislikes: post.dislikes - 1,
-                userVote: 'upvote',
-              };
-            }
-            
-            // If not voted, add upvote
             return {
               ...post,
-              likes: post.likes + 1,
-              userVote: 'upvote',
+              likes: response.likes,
+              dislikes: response.dislikes,
+              userVote: response.voteType
             };
           }
           return post;
@@ -68,34 +49,15 @@ const PostList = ({
   
   const handleDownvote = async (postId) => {
     try {
-      await postService.votePost(postId, 'downvote');
+      const response = await postService.votePost(postId, 'downvote');
       setLocalPosts(prevPosts => 
         prevPosts.map(post => {
           if (post.id === postId) {
-            // If already downvoted, remove the downvote
-            if (post.userVote === 'downvote') {
-              return {
-                ...post,
-                dislikes: post.dislikes - 1,
-                userVote: null,
-              };
-            }
-            
-            // If upvoted, switch to downvote
-            if (post.userVote === 'upvote') {
-              return {
-                ...post,
-                likes: post.likes - 1,
-                dislikes: post.dislikes + 1,
-                userVote: 'downvote',
-              };
-            }
-            
-            // If not voted, add downvote
             return {
               ...post,
-              dislikes: post.dislikes + 1,
-              userVote: 'downvote',
+              likes: response.likes,
+              dislikes: response.dislikes,
+              userVote: response.voteType
             };
           }
           return post;

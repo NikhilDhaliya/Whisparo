@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import { ChevronUp, ChevronDown, MessageSquare } from 'lucide-react';
@@ -7,6 +7,7 @@ import Avatar from '../common/Avatar';
 import IconButton from '../common/IconButton';
 import CategoryBadge from '../common/CategoryBadge';
 import { formatRelativeTime, formatVoteCount } from '../../utils/helpers';
+import { postService } from '../../utils/api';
 
 const PostCard = ({
   post,
@@ -14,16 +15,44 @@ const PostCard = ({
   onUpvote,
   onDownvote,
 }) => {
-  const handleUpvote = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onUpvote) onUpvote(post.id);
-  };
-  
-  const handleDownvote = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onDownvote) onDownvote(post.id);
+  const [voteStatus, setVoteStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchVoteStatus = async () => {
+      try {
+        const response = await postService.getVoteStatus(post.id);
+        setVoteStatus(response.voteType);
+      } catch (error) {
+        console.error('Error fetching vote status:', error);
+      }
+    };
+
+    fetchVoteStatus();
+  }, [post.id]);
+
+  const handleVote = async (voteType) => {
+    if (loading) return;
+    
+    setLoading(true);
+    try {
+      // Optimistically update UI
+      const newVoteStatus = voteStatus === voteType ? 'none' : voteType;
+      setVoteStatus(newVoteStatus);
+
+      // Call the appropriate handler
+      if (voteType === 'upvote') {
+        await onUpvote(post.id);
+      } else {
+        await onDownvote(post.id);
+      }
+    } catch (error) {
+      // Revert on error
+      setVoteStatus(voteStatus);
+      console.error('Error voting:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleComment = (e) => {
@@ -43,11 +72,11 @@ const PostCard = ({
       hover
     >
       <div className="flex items-center mb-2">
-        <Avatar username={post.newUsername || post.username} size="sm" />
+        <Avatar username={post.newUsername} size="sm" />
         <div className="ml-2 flex-1">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-gray-800">
-              {post.newUsername || post.username}
+              {post.newUsername}
             </p>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">
@@ -75,17 +104,18 @@ const PostCard = ({
           <div className="flex items-center">
             <IconButton
               icon={<ChevronUp size={18} />}
-              onClick={handleUpvote}
+              onClick={() => handleVote('upvote')}
               size="sm"
               variant="ghost"
-              active={userVote === 'upvote'}
+              active={voteStatus === 'upvote'}
+              disabled={loading}
               label="Upvote"
-              className={userVote === 'upvote' ? 'text-green-600' : ''}
+              className={voteStatus === 'upvote' ? 'text-green-600' : ''}
             />
             <span className={`text-sm mx-1 font-medium ${
-              userVote === 'upvote' 
+              voteStatus === 'upvote' 
                 ? 'text-green-600' 
-                : userVote === 'downvote' 
+                : voteStatus === 'downvote' 
                   ? 'text-red-600' 
                   : 'text-gray-600'
             }`}>
@@ -93,12 +123,13 @@ const PostCard = ({
             </span>
             <IconButton
               icon={<ChevronDown size={18} />}
-              onClick={handleDownvote}
+              onClick={() => handleVote('downvote')}
               size="sm"
               variant="ghost"
-              active={userVote === 'downvote'}
+              active={voteStatus === 'downvote'}
+              disabled={loading}
               label="Downvote"
-              className={userVote === 'downvote' ? 'text-red-600' : ''}
+              className={voteStatus === 'downvote' ? 'text-red-600' : ''}
             />
           </div>
           

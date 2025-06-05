@@ -2,9 +2,9 @@ import React from 'react';
 
 const Avatar = ({ username, email, size = 'md' }) => {
   const sizeClasses = {
-    sm: 'w-8 h-8 text-sm',
-    md: 'w-10 h-10 text-base',
-    lg: 'w-12 h-12 text-lg'
+    sm: 'w-5 h-5 text-sm',
+    md: 'w-7 h-7 text-base',
+    lg: 'w-9 h-9 text-lg'
   };
   
   // Generate a consistent color based on username or email
