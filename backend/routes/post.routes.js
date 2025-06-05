@@ -10,6 +10,7 @@ import {
 import { votePost, getVoteStatus } from "../controllers/vote.controller.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { setUsernameMiddleware } from "../middlewares/setUsername.js";
+import { upload } from "../config/cloudinary.js";
 
 const router = express.Router();
 
@@ -23,7 +24,8 @@ router.get("/:id", setUsernameMiddleware, getPostById);
 router.post("/:id/vote", authMiddleware, votePost);
 router.get("/:id/vote-status", authMiddleware, getVoteStatus);
 
-router.post("/create", authMiddleware, setUsernameMiddleware, createPost);
+// Create post with image upload
+router.post("/create", authMiddleware, setUsernameMiddleware, upload.single('image'), createPost);
 router.put("/:id", authMiddleware, setUsernameMiddleware, updatePost);
 router.delete("/:id", authMiddleware, setUsernameMiddleware, deletePost);
 

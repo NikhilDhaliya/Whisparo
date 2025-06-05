@@ -1,10 +1,11 @@
 import Post from "../models/post.js";
 import Comment from "../models/comment.js";
+import { cloudinary } from "../config/cloudinary.js";
 
 export const createPost = async (req, res) => {
   try {
-    const {body, category } = req.body;
-    const authorEmail = req.user.email; // from authMiddleware
+    const { body, category } = req.body;
+    const authorEmail = req.user.email;
     
     // Get username from cookie
     const usernameCookie = req.cookies.username;
@@ -25,60 +26,82 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const newPost = await Post.create({
+    const postData = {
       body,
       category,
       authorEmail,
       authorUsername: username
-    });
+    };
+
+    // Add image data if an image was uploaded
+    if (req.file) {
+      console.log('File uploaded:', req.file);
+      postData.image = {
+        url: req.file.path,
+        public_id: req.file.filename
+      };
+    }
+
+    console.log('Creating post with data:', postData);
+    const newPost = await Post.create(postData);
+
+    // Transform the response to match frontend expectations
+    const responsePost = {
+      id: newPost._id,
+      content: newPost.body,
+      category: newPost.category,
+      authorEmail: newPost.authorEmail,
+      createdAt: newPost.createdAt,
+      newUsername: newPost.authorUsername,
+      likes: newPost.votes.upvotes.length,
+      image: newPost.image
+    };
 
     res.status(201).json({
       message: "Post created successfully",
-      post: newPost
+      post: responsePost
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error creating post:', error);
+    res.status(500).json({ 
+      message: "Error creating post",
+      error: error.message 
+    });
   }
 };
 
 export const getAllPosts = async (req, res) => {
   try {
-    const userEmail = req.user?.email; // Optional chaining since this endpoint might be public
+    const userEmail = req.user?.email;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const filter = req.query.filter || 'latest';
-    const authorEmail = req.query.authorEmail; // Get authorEmail from query
+    const authorEmail = req.query.authorEmail;
     
     const skip = (page - 1) * limit;
     
     let sortOptions = {};
     let filterCondition = {};
 
-    // Add authorEmail filter if provided
     if (authorEmail) {
       filterCondition.authorEmail = authorEmail;
     }
 
     if (filter === 'trending') {
       sortOptions = { 'votes.score': -1, createdAt: -1 };
-      filterCondition['votes.upvotes.length'] = { $gt: 5 }; // Filter for likes > 5
+      filterCondition['votes.upvotes.length'] = { $gt: 5 };
     } else {
-      // 'latest' is default
       sortOptions = { createdAt: -1 };
     }
     
-    // Apply both filter condition and sort options to the find query
     const posts = await Post.find(filterCondition)
       .sort(sortOptions)
       .skip(skip)
       .limit(limit);
     
-    // Get total count for pagination
     const total = await Post.countDocuments(filterCondition);
     
-    // For each post, get the comment count
     const postsWithCommentCounts = await Promise.all(posts.map(async post => {
-      // Count comments for this post
       const commentsCount = await Comment.countDocuments({ postId: post._id });
       
       return {
@@ -87,9 +110,10 @@ export const getAllPosts = async (req, res) => {
         category: post.category,
         authorEmail: post.authorEmail,
         createdAt: post.createdAt,
-        newUsername: post.authorUsername, // Use stored username
+        newUsername: post.authorUsername,
         likes: post.votes.upvotes.length,
         score: post.votes.score,
+        image: post.image,
         userVote: req.user?.email ? (
           post.votes.upvotes.includes(req.user.email) ? 'like' : 'none'
         ) : null,
@@ -168,6 +192,11 @@ export const deletePost = async (req, res) => {
 
     if (post.authorEmail !== userEmail) {
       return res.status(403).json({ message: "Not authorized to delete this post" });
+    }
+
+    // Delete image from Cloudinary if it exists
+    if (post.image && post.image.public_id) {
+      await cloudinary.uploader.destroy(post.image.public_id);
     }
 
     await Post.findByIdAndDelete(id);

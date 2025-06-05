@@ -23,6 +23,7 @@ app.use(cors({
 // Parse cookies before routes
 app.use(cookieParser());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', userRouter);

@@ -5,6 +5,10 @@ const postSchema = new mongoose.Schema({
     category: { type: String, required: true },
     authorEmail: { type: String, required: true }, // <- replaces anonId
     authorUsername: { type: String, required: true }, // Store username at creation time
+    image: {
+        url: { type: String },
+        public_id: { type: String }
+    },
     votes: {
         upvotes: [{ type: String }], // Array of user emails who liked
         score: { type: Number, default: 0 } // Total likes count

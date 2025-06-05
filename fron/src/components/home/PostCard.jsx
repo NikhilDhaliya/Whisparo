@@ -161,7 +161,18 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
                 rows="4"
               />
             ) : (
-              <p className="text-gray-700">{content}</p>
+              <>
+                <p className="text-gray-700">{content}</p>
+                {post.image?.url && (
+                  <div className="mt-4">
+                    <img
+                      src={post.image.url}
+                      alt="Post attachment"
+                      className="max-h-96 w-full object-contain rounded-lg"
+                    />
+                  </div>
+                )}
+              </>
             )}
         </div>
         <div className="postDetails flex justify-between mt-auto pt-3 border-t border-gray-100">
