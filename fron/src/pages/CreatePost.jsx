@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -44,13 +45,13 @@ const CreatePost = () => {
 
     try {
       const formData = new FormData();
-      formData.append('body', content);
+      formData.append('body', content.trim());
       formData.append('category', category);
       if (image) {
         formData.append('image', image);
       }
 
-      await axios.post('/api/posts/create', formData, {
+      const response = await axios.post('/api/posts/create', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

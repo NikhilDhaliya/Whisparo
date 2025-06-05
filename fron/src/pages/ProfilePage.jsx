@@ -50,9 +50,13 @@ const ProfilePage = () => {
         setCacheData('user_profile', profileRes.data.user);
 
         const postsRes = await axios.get('/api/posts?authorEmail=' + encodeURIComponent(profileRes.data.user.email));
-        setUserPosts(postsRes.data.posts);
+        const postsWithUsernames = postsRes.data.posts.map(post => ({
+          ...post,
+          username: post.newUsername || post.authorUsername || 'Anonymous'
+        }));
+        setUserPosts(postsWithUsernames);
         // Cache user posts
-        setCacheData(`user_posts_${profileRes.data.user.email}`, postsRes.data.posts);
+        setCacheData(`user_posts_${profileRes.data.user.email}`, postsWithUsernames);
 
         const commentsRes = await axios.get('/api/comments/user');
         setUserComments(commentsRes.data.comments);

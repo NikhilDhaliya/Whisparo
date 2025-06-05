@@ -211,9 +211,17 @@ const CommentList = ({ postId, isOpen, onClose }) => {
           !comment.replies?.some(reply => reply._id === newComment)
         )
       );
-    } else {
-      // Refresh comments to show the new one
-      fetchComments(1);
+      // Update the comment count in the parent component
+      if (onCommentAdded) {
+        onCommentAdded(null, true, newComment);
+      }
+    } else if (newComment) {
+      // Add the new comment at the beginning of the list
+      setComments(prevComments => [newComment, ...prevComments]);
+      // Update the comment count in the parent component
+      if (onCommentAdded) {
+        onCommentAdded(newComment);
+      }
     }
   };
 

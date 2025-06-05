@@ -17,12 +17,13 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
     likes: initialLikes,
     author,
     id: postId,
-    commentsCount,
+    commentsCount: initialCommentsCount,
     authorEmail
   } = post;
 
   const [userVoteStatus, setUserVoteStatus] = useState(post.userVote || null);
   const [likes, setLikes] = useState(post.likes || 0);
+  const [commentsCount, setCommentsCount] = useState(initialCommentsCount || 0);
   const [isVoting, setIsVoting] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -30,6 +31,14 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
+
+  const handleCommentAdded = (newComment, isDeleted = false, deletedCommentId = null) => {
+    if (isDeleted) {
+      setCommentsCount(prev => Math.max(0, prev - 1));
+    } else if (newComment) {
+      setCommentsCount(prev => prev + 1);
+    }
+  };
 
   const handleVote = async () => {
     if (isVoting) return;
@@ -237,7 +246,7 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
               className="flex items-center space-x-1 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all duration-200"
             >
               <FaComment />
-              <span className="text-sm">{commentsCount || 0}</span>
+              <span className="text-sm">{commentsCount}</span>
             </motion.button>
           </div>
 
@@ -284,6 +293,7 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
               postId={postId} 
               isOpen={true}
               onClose={() => setShowComments(false)}
+              onCommentAdded={handleCommentAdded}
             />
           </div>
         )}

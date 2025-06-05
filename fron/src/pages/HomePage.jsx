@@ -33,7 +33,10 @@ const HomePage = () => {
 
       const response = await axios.get('/api/posts');
       // Sort posts by creation date, newest first
-      const sortedPosts = response.data.posts.sort((a, b) => 
+      const sortedPosts = response.data.posts.map(post => ({
+        ...post,
+        username: post.newUsername || post.authorUsername || 'Anonymous'
+      })).sort((a, b) => 
         new Date(b.createdAt) - new Date(a.createdAt)
       );
       setPosts(sortedPosts);
