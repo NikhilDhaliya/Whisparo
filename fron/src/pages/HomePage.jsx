@@ -4,6 +4,7 @@ import PostList from '../components/home/PostList';
 import axios from 'axios';
 import { FaSyncAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import CommentList from '../components/comments/CommentList';
 
 const HomePage = () => {
   const [posts, setPosts] = useState([]);
@@ -12,6 +13,7 @@ const HomePage = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeCommentPost, setActiveCommentPost] = useState(null);
   const containerRef = useRef(null);
 
   const fetchPosts = async () => {
@@ -61,69 +63,78 @@ const HomePage = () => {
     ));
   };
 
+  const handleCommentClick = (postId) => {
+    setActiveCommentPost(postId);
+  };
+
+  const handleCommentClose = () => {
+    setActiveCommentPost(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* iOS-style Navigation Bar */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-semibold text-gray-900">Whisparo</h1>
-            <button
-              onClick={handleRefresh}
-              className={`p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-all duration-300 ${
-                (loading || isRefreshing) ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-              disabled={loading || isRefreshing}
-            >
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Home</h1>
+          <motion.button
+            onClick={handleRefresh}
+            disabled={loading || isRefreshing}
+            whileTap={{ scale: 0.95 }}
+            className={`p-2 rounded-full transition-colors ${
+              loading || isRefreshing
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <FaSyncAlt className={`${isRefreshing ? 'animate-spin' : ''}`} />
+          </motion.button>
+        </div>
+
+        <div ref={containerRef} className="space-y-4">
+          <AnimatePresence mode="wait">
+            {loading && posts.length === 0 ? (
               <motion.div
-                animate={{ rotate: isRefreshing ? 360 : 0 }}
-                transition={{ duration: 1, repeat: isRefreshing ? Infinity : 0, ease: "linear" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center justify-center py-8"
               >
-                <FaSyncAlt />
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
               </motion.div>
-            </button>
-          </div>
+            ) : error ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-red-500 text-center py-4 bg-red-50 rounded-xl"
+              >
+                {error}
+              </motion.div>
+            ) : (
+              <PostList
+                posts={posts}
+                currentUserEmail={currentUserEmail}
+                onPostDeleted={handlePostDeleted}
+                onPostUpdated={handlePostUpdated}
+                onCommentClick={handleCommentClick}
+              />
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-2xl mx-auto px-4 py-6" ref={containerRef}>
-        <AnimatePresence mode="wait">
-          {loading && !isRefreshing ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex justify-center items-center py-8"
-            >
-              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            </motion.div>
-          ) : error ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-8"
-            >
-              <div className="text-red-500 bg-red-50 p-4 rounded-xl">
-                {error}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <PostList 
-                posts={posts} 
-                currentUserEmail={currentUserEmail} 
-                onPostDeleted={handlePostDeleted} 
-                onPostUpdated={handlePostUpdated} 
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      {/* Comments Modal */}
+      <AnimatePresence>
+        {activeCommentPost && (
+          <div className="mt-4">
+            <CommentList 
+              postId={activeCommentPost} 
+              isOpen={true}
+              onClose={handleCommentClose}
+            />
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

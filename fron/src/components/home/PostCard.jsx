@@ -9,7 +9,7 @@ import CommentList from '../comments/CommentList'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
+const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onCommentClick }) => {
   const {
     content,
     category,
@@ -21,14 +21,15 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
     authorEmail
   } = post;
 
-  const [userVoteStatus, setUserVoteStatus] = useState(null);
-  const [likes, setLikes] = useState(initialLikes || 0);
+  const [userVoteStatus, setUserVoteStatus] = useState(post.userVote || null);
+  const [likes, setLikes] = useState(post.likes || 0);
   const [isVoting, setIsVoting] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(content);
+  const [editedContent, setEditedContent] = useState(post.body);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
 
   const handleVote = async () => {
     if (isVoting) return;
@@ -231,7 +232,7 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated }) => {
             </motion.button>
             
             <motion.button 
-              onClick={() => setShowComments(true)}
+              onClick={() => onCommentClick(postId)}
               whileTap={{ scale: 0.95 }}
               className="flex items-center space-x-1 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all duration-200"
             >
