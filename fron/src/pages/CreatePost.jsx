@@ -54,7 +54,17 @@ const CreatePost = () => {
       toast.success('Post created successfully');
       navigate('/');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create post');
+      console.error('Error creating post:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          err.message || 
+                          'Failed to create post';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

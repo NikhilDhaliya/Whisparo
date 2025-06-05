@@ -62,10 +62,17 @@ export const createPost = async (req, res) => {
       post: responsePost
     });
   } catch (error) {
-    console.error('Error creating post:', error);
+    console.error('Error creating post:', {
+      message: error.message,
+      stack: error.stack,
+      details: error
+    });
+    
+    // Send a more detailed error response
     res.status(500).json({ 
       message: "Error creating post",
-      error: error.message 
+      error: error.message,
+      details: error.stack
     });
   }
 };

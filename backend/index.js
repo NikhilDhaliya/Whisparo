@@ -32,6 +32,45 @@ app.use('/api/posts', postRouter);
 app.use('/api/comments', commentRouter);
 app.use('/api/otp', otpRouter);
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', {
+    message: err.message,
+    stack: err.stack,
+    details: err
+  });
+
+  // Send JSON response for API errors
+  if (req.path.startsWith('/api/')) {
+    return res.status(err.status || 500).json({
+      message: err.message || 'Internal Server Error',
+      error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+  }
+
+  // For non-API routes, send HTML error page
+  res.status(err.status || 500).send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Error</title>
+      </head>
+      <body>
+        <h1>Error</h1>
+        <p>${err.message || 'Internal Server Error'}</p>
+      </body>
+    </html>
+  `);
+});
+
+// 404 handler
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ message: 'Not Found' });
+  }
+  res.status(404).send('Not Found');
+});
+
 app.listen(5000, () => {
     connectDB();
     console.log("Server is running on port 5000");
