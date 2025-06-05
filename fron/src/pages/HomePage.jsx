@@ -5,6 +5,7 @@ import axios from 'axios';
 import { FaSyncAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommentList from '../components/comments/CommentList';
+import { useCache } from '../context/CacheContext';
 
 const HomePage = () => {
   const [posts, setPosts] = useState([]);
@@ -15,13 +16,24 @@ const HomePage = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeCommentPost, setActiveCommentPost] = useState(null);
   const containerRef = useRef(null);
+  const { getCacheData, setCacheData } = useCache();
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
+      // Check cache first
+      const cachedPosts = getCacheData('home_posts');
+      if (cachedPosts) {
+        setPosts(cachedPosts);
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.get('/api/posts');
       const shuffledPosts = response.data.posts.sort(() => Math.random() - 0.5);
       setPosts(shuffledPosts);
+      // Cache the posts
+      setCacheData('home_posts', shuffledPosts);
       setError(null);
     } catch {
       setError('Failed to load posts.');
@@ -32,8 +44,17 @@ const HomePage = () => {
 
   const fetchUserProfile = async () => {
     try {
+      // Check cache first
+      const cachedUser = getCacheData('user_profile');
+      if (cachedUser) {
+        setCurrentUserEmail(cachedUser.email);
+        return;
+      }
+
       const response = await axios.get('/api/auth/check');
       setCurrentUserEmail(response.data.user.email);
+      // Cache the user profile
+      setCacheData('user_profile', response.data.user);
     } catch {
       setCurrentUserEmail(null);
     }
@@ -54,13 +75,23 @@ const HomePage = () => {
   };
 
   const handlePostDeleted = (deletedPostId) => {
-    setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
+    setPosts(prevPosts => {
+      const newPosts = prevPosts.filter(post => post.id !== deletedPostId);
+      // Update cache
+      setCacheData('home_posts', newPosts);
+      return newPosts;
+    });
   };
 
   const handlePostUpdated = (updatedPost) => {
-    setPosts(prevPosts => prevPosts.map(post => 
-      post.id === updatedPost._id ? { ...post, content: updatedPost.body } : post
-    ));
+    setPosts(prevPosts => {
+      const newPosts = prevPosts.map(post => 
+        post.id === updatedPost._id ? { ...post, content: updatedPost.body } : post
+      );
+      // Update cache
+      setCacheData('home_posts', newPosts);
+      return newPosts;
+    });
   };
 
   const handleCommentClick = (postId) => {
