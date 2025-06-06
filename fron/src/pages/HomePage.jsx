@@ -98,6 +98,7 @@ const HomePage = () => {
     setSelectedCategory(newCategory);
     setCacheData(`home_posts_${newCategory}`, null);
     fetchPosts();
+    toast.loading(`Fetching ${newCategory === 'All' ? 'all' : newCategory} posts...`);
   };
 
   const handlePostDeleted = (deletedPostId) => {
