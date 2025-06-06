@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 import {React, useEffect, useState} from 'react'
 import Avatar from '../common/Avatar'
-import { FaThumbsUp, FaFlag, FaComment, FaEdit, FaTrash, FaSave, FaTimes } from 'react-icons/fa'
+import { FaThumbsUp, FaFlag, FaComment, FaEdit, FaTrash, FaSave, FaTimes, FaSpinner, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 import { formatDistanceToNow } from 'date-fns'
 import axios from 'axios'
 import CommentList from '../comments/CommentList'
@@ -150,160 +150,140 @@ const PostCard = ({ post, currentUserEmail, onPostDeleted, onPostUpdated, onComm
   const isOwnedByUser = currentUserEmail && authorEmail === currentUserEmail;
 
   return (
-    <motion.div 
-      className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
     >
-      {/* Header */}
-      <div className="p-4 border-b border-gray-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Avatar email={authorEmail} />
-            <div>
-              <span className="font-medium text-gray-900">
-                {authorEmail === authUser?.email ? authUser?.username : (newUsername || authorUsername || 'Anonymous')}
-              </span>
-              <span className="block text-xs text-gray-500">
-                {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
-              </span>
-            </div>
-          </div>
-          <span className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 rounded-full">
-            {category}
-          </span>
+      <div className="flex flex-col space-y-3">
+        {/* Post Body */}
+        {isEditing ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="w-full"
+          >
+            <textarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+              rows="4"
+            />
+          </motion.div>
+        ) : (
+          <div className="text-gray-800 text-sm break-words">{body || content}</div>
+        )}
+
+        {/* Post Info (Author, Time) */}
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>{isOwnedByUser ? 'You' : (newUsername || authorUsername || 'Anonymous')}</span>
+          <span>{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="p-4">
-        <AnimatePresence mode="wait">
-          {isEditing ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <textarea
-                value={editedContent}
-                onChange={(e) => setEditedContent(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                rows="4"
-              />
-              <div className="flex justify-end space-x-2 mt-2">
-                <button
-                  onClick={handleCancelEdit}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <FaTimes />
-                </button>
-                <button
-                  onClick={handleUpdate}
-                  disabled={isSaving}
-                  className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                    isSaving ? 'bg-blue-400' : 'bg-blue-500 hover:bg-blue-600'
-                  }`}
-                >
-                  {isSaving ? <FaSave className="animate-spin" /> : <FaSave />}
-                </button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-4"
-            >
-              <p className="text-gray-700 whitespace-pre-wrap">{body || content}</p>
-              {post.image?.url && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mt-2"
-                >
-                  <img
-                    src={post.image.url}
-                    alt="Post attachment"
-                    className="max-h-96 w-full object-contain rounded-xl"
-                  />
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Actions */}
-      <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <motion.button 
+        {/* Actions (Likes, Comments, Edit/Delete) */}
+        <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+          <div className="flex items-center space-x-4 text-sm">
+            {/* Like Button */}
+            <motion.button
               onClick={handleVote}
-              disabled={isVoting}
-              whileTap={{ scale: 0.95 }}
-              className={`flex items-center space-x-1 px-3 py-1.5 rounded-full transition-all duration-200 ${
-                userVoteStatus === 'like' 
-                  ? 'bg-blue-50 text-blue-600' 
-                  : 'text-gray-600 hover:bg-gray-100'
-              } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!authUser || isVoting}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className={`flex items-center space-x-1 transition-colors ${!authUser ? 'cursor-not-allowed text-gray-400' : userVoteStatus === 'like' ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
+              aria-label={userVoteStatus === 'like' ? 'Unlike Post' : 'Like Post'}
             >
-              <FaThumbsUp className={`${userVoteStatus === 'like' ? 'text-blue-600' : ''}`} />
-              <span className="text-sm font-medium">{likes}</span>
+              {userVoteStatus === 'like' ? <FaThumbsUp /> : <FaThumbsUp />}
+              <span>{likes}</span>
             </motion.button>
-            
+
+            {/* Comment Button */}
             <motion.button
               onClick={() => {
                 setShowComments(!showComments);
-                if (onCommentClick) {
-                  onCommentClick(postId);
-                }
+                if (onCommentClick) onCommentClick(postId);
               }}
-              whileTap={{ scale: 0.95 }}
-              className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all duration-200 ${
-                 showComments ? 'bg-gray-100' : ''
-              }`}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors"
+              aria-label={showComments ? 'Hide Comments' : 'Show Comments'}
             >
               <FaComment />
-              <span className="text-sm font-medium">{commentsCount}</span>
+              <span>{commentsCount}</span>
             </motion.button>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {isOwnedByUser && !isEditing && (
-              <>
-                <motion.button
-                  onClick={handleEdit}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <FaEdit />
-                </motion.button>
-                <motion.button
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  whileTap={{ scale: 0.95 }}
-                  className={`p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors ${
-                    isDeleting ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  <FaTrash />
-                </motion.button>
-              </>
-            )}
-            {!isOwnedByUser && (
-              <motion.button
-                onClick={handleReport}
-                whileTap={{ scale: 0.95 }}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <FaFlag />
-              </motion.button>
-            )}
-          </div>
+          {/* Edit/Delete Buttons (Author only) */}
+          {isOwnedByUser && (
+            <div className="flex items-center space-x-2">
+              {isEditing ? (
+                <>
+                  {/* Save Button */}
+                  <motion.button
+                    onClick={handleUpdate}
+                    disabled={isSaving || editedContent.trim() === ''}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`p-1 rounded-md transition-colors ${isSaving || editedContent.trim() === '' ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
+                    aria-label="Save Edit"
+                  >
+                    {isSaving ? <FaSpinner className="animate-spin text-sm" /> : <FaSave className="text-sm" />}
+                  </motion.button>
+                  {/* Cancel Button */}
+                  <motion.button
+                    onClick={handleCancelEdit}
+                    disabled={isSaving}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`p-1 rounded-md transition-colors ${isSaving ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}
+                    aria-label="Cancel Edit"
+                  >
+                    <FaTimes className="text-sm" />
+                  </motion.button>
+                </>
+              ) : (
+                <>
+                  {/* Edit Button */}
+                  <motion.button
+                    onClick={handleEdit}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-1 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+                    aria-label="Edit Post"
+                  >
+                    <FaEdit className="text-sm" />
+                  </motion.button>
+                  {/* Delete Button */}
+                  <motion.button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`p-1 rounded-md text-gray-600 hover:bg-red-100 hover:text-red-600 transition-colors ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    aria-label="Delete Post"
+                  >
+                    {isDeleting ? <FaSpinner className="animate-spin text-sm" /> : <FaTrash className="text-sm" />}
+                  </motion.button>
+                </>
+              )}
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Comment List Modal/Section (This is the correct one for the modal) */}
+        {/* Comments Section */}
+        <AnimatePresence>
+          {showComments && (
+            <CommentList
+              postId={postId}
+              isOpen={showComments}
+              onClose={() => setShowComments(false)}
+              onCommentCountUpdate={handleCommentCountUpdate}
+            />
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
 };

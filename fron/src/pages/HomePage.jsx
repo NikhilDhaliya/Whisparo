@@ -2,11 +2,11 @@
 import { useState, useEffect, useRef } from 'react';
 import PostList from '../components/home/PostList';
 import axios from 'axios';
-import { FaSyncAlt } from 'react-icons/fa';
+import { FaSyncAlt, FaPlus } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommentList from '../components/comments/CommentList';
 import { useCache } from '../context/CacheContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import config from '../config';
@@ -22,6 +22,7 @@ const HomePage = () => {
   const { getCacheData, setCacheData } = useCache();
   const location = useLocation();
   const { user: authUser } = useAuth();
+  const navigate = useNavigate();
 
   const fetchPosts = async (showToast = false) => {
     try {
@@ -109,66 +110,84 @@ const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Home</h1>
-          <motion.button
-            onClick={handleRefresh}
-            disabled={loading || isRefreshing}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
-              loading || isRefreshing
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-white text-gray-600 hover:bg-gray-100 shadow-sm'
-            }`}
-          >
-            <FaSyncAlt className={`${isRefreshing ? 'animate-spin' : ''}`} />
-            <span className="text-sm font-medium">Refresh</span>
-          </motion.button>
-        </div>
+    <div
+      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-4 px-2 sm:py-6 sm:px-4 lg:px-8"
+    >
+      <div className="max-w-4xl mx-auto">
+        {/* Header with Refresh and Create Post */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex justify-between items-center mb-4 px-2 sm:px-0"
+        >
+          <h1 className="text-2xl font-bold text-gray-800">AnonBoard</h1>
+          <div className="flex space-x-3">
+            {/* Refresh Button */}
+            <motion.button
+              onClick={handleRefresh}
+              disabled={loading || isRefreshing}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`p-2 rounded-full bg-blue-500 text-white shadow-md transition-all duration-200
+                ${loading || isRefreshing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
+              aria-label="Refresh Posts"
+            >
+              <motion.div animate={{ rotate: isRefreshing ? 360 : 0 }} transition={{ duration: 0.5 }}>
+                <FaSyncAlt className={isRefreshing ? 'animate-spin' : ''} />
+              </motion.div>
+            </motion.button>
 
-        <div ref={containerRef} className="space-y-4">
-          <AnimatePresence mode="wait">
-            {loading && posts.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center justify-center py-12"
-              >
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-              </motion.div>
-            ) : error ? (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="text-red-500 text-center py-8 bg-red-50 rounded-xl"
-              >
-                {error}
-              </motion.div>
-            ) : posts.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center py-12 bg-white rounded-xl shadow-sm"
-              >
-                <p className="text-gray-500 mb-4">No posts yet. Be the first to share!</p>
-              </motion.div>
-            ) : (
-              <PostList
-                posts={posts}
-                currentUserEmail={authUser?.email}
-                onPostDeleted={handlePostDeleted}
-                onPostUpdated={handlePostUpdated}
-                onCommentClick={handleCommentClick}
-              />
-            )}
-          </AnimatePresence>
-        </div>
+            {/* Create Post Button */}
+            <motion.button
+              onClick={() => navigate('/create')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="p-2 rounded-full bg-green-500 text-white shadow-md hover:bg-green-600 transition-colors duration-200"
+              aria-label="Create New Post"
+            >
+              <FaPlus />
+            </motion.button>
+          </div>
+        </motion.div>
+
+        {/* Loading Indicator for Pull to Refresh */}
+        <AnimatePresence>
+          {isRefreshing && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex justify-center items-center py-2"
+            >
+              <FaSpinner className="animate-spin text-xl text-blue-600" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Content */}
+        {
+          loading && !isRefreshing ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex justify-center items-center h-64"
+            >
+              <FaSpinner className="animate-spin text-4xl text-blue-600" />
+            </motion.div>
+          ) : error ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-red-500 text-center text-xl py-8"
+            >
+              {error}
+            </motion.div>
+          ) : (
+            <PostList posts={posts} />
+          )
+        }
       </div>
 
       {/* Comments Modal */}
