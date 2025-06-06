@@ -2,11 +2,11 @@
 import { useState, useEffect, useRef } from 'react';
 import PostList from '../components/home/PostList';
 import axios from 'axios';
-import { FaSyncAlt, FaPlus } from 'react-icons/fa';
+import { FaSyncAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommentList from '../components/comments/CommentList';
 import { useCache } from '../context/CacheContext';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import config from '../config';
@@ -22,7 +22,6 @@ const HomePage = () => {
   const { getCacheData, setCacheData } = useCache();
   const location = useLocation();
   const { user: authUser } = useAuth();
-  const navigate = useNavigate();
 
   const fetchPosts = async (showToast = false) => {
     try {
@@ -109,18 +108,10 @@ const HomePage = () => {
     setActiveCommentPost(null);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-100 pt-4 px-2">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-4 px-2">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Home</h1>
           <motion.button
             onClick={handleRefresh}
@@ -140,7 +131,16 @@ const HomePage = () => {
 
         <div ref={containerRef} className="space-y-4">
           <AnimatePresence mode="wait">
-            {error ? (
+            {loading && posts.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center justify-center py-12"
+              >
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              </motion.div>
+            ) : error ? (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -156,14 +156,7 @@ const HomePage = () => {
                 exit={{ opacity: 0 }}
                 className="text-center py-12 bg-white rounded-xl shadow-sm"
               >
-                <p className="text-center text-gray-500 text-sm">No posts yet. Be the first to share your thoughts!</p>
-                <motion.button
-                  onClick={() => navigate('/create')}
-                  whileTap={{ scale: 0.95 }}
-                  className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg transition-all duration-200 text-sm"
-                >
-                  <FaPlus className="mr-2" /> Create Post
-                </motion.button>
+                <p className="text-gray-500 mb-4">No posts yet. Be the first to share!</p>
               </motion.div>
             ) : (
               <PostList
