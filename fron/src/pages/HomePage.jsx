@@ -83,6 +83,7 @@ const HomePage = () => {
     
     try {
       setIsRefreshing(true);
+      setCacheData(`home_posts_${selectedCategory}`, null);
       await fetchPosts(true);
     } catch (error) {
       console.error('Error refreshing posts:', error);
@@ -92,10 +93,17 @@ const HomePage = () => {
     }
   };
 
+  const handleCategoryChange = (e) => {
+    const newCategory = e.target.value;
+    setSelectedCategory(newCategory);
+    setCacheData(`home_posts_${newCategory}`, null);
+    fetchPosts();
+  };
+
   const handlePostDeleted = (deletedPostId) => {
     setPosts(prevPosts => {
       const newPosts = prevPosts.filter(post => post.id !== deletedPostId);
-      setCacheData('home_posts', newPosts);
+      setCacheData(`home_posts_${selectedCategory}`, newPosts);
       return newPosts;
     });
   };
@@ -105,7 +113,7 @@ const HomePage = () => {
       const newPosts = prevPosts.map(post => 
         post.id === updatedPost._id ? { ...post, content: updatedPost.body } : post
       );
-      setCacheData('home_posts', newPosts);
+      setCacheData(`home_posts_${selectedCategory}`, newPosts);
       return newPosts;
     });
   };
@@ -147,7 +155,7 @@ const HomePage = () => {
             name="category-filter"
             className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm"
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={handleCategoryChange}
           >
             {categories.map((cat) => (
               <option key={cat.value} value={cat.value}>
