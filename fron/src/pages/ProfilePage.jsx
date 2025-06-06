@@ -376,6 +376,15 @@ const ProfilePage = () => {
                         <>
                           <div className="space-y-2">
                             <p className="text-gray-800 text-sm break-words">{post.body}</p>
+                            {post.image?.url && (
+                              <div className="mt-2">
+                                <img
+                                  src={post.image.url}
+                                  alt="Post attachment"
+                                  className="max-h-96 w-full object-contain rounded-lg"
+                                />
+                              </div>
+                            )}
                             <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-500">
                               <span className="flex items-center space-x-1">
                                 <FaThumbsUp />
