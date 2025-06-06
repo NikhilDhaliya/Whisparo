@@ -1,5 +1,6 @@
 import express from 'express';
 import OTP from '../models/otp.js';
+import User from '../models/user.js';
 import { sendOTPEmail } from '../services/emailService.js';
 
 const router = express.Router();
@@ -11,6 +12,12 @@ router.post('/generate', async (req, res) => {
 
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Check if user exists and is already verified
+    const existingUser = await User.findOne({ email });
+    if (existingUser && existingUser.verified) {
+      return res.status(400).json({ message: 'Email is already verified' });
     }
 
     // Create new OTP
@@ -43,6 +50,9 @@ router.post('/verify', async (req, res) => {
     if (!result.valid) {
       return res.status(400).json({ message: result.message });
     }
+
+    // Mark user as verified
+    await User.findOneAndUpdate({ email }, { verified: true });
 
     res.status(200).json({
       message: result.message,
