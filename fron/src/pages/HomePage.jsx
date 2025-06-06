@@ -2,11 +2,11 @@
 import { useState, useEffect, useRef } from 'react';
 import PostList from '../components/home/PostList';
 import axios from 'axios';
-import { FaSyncAlt, FaPlus } from 'react-icons/fa';
+import { FaSyncAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommentList from '../components/comments/CommentList';
 import { useCache } from '../context/CacheContext';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -17,11 +17,9 @@ const HomePage = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeCommentPost, setActiveCommentPost] = useState(null);
-  const [pullToRefresh, setPullToRefresh] = useState({ startY: 0, currentY: 0, isPulling: false });
   const containerRef = useRef(null);
   const { getCacheData, setCacheData } = useCache();
   const location = useLocation();
-  const navigate = useNavigate();
   const { user: authUser } = useAuth();
 
   const fetchPosts = async (showToast = false) => {
@@ -103,77 +101,28 @@ const HomePage = () => {
     setActiveCommentPost(null);
   };
 
-  const handleTouchStart = (e) => {
-    if (containerRef.current?.scrollTop === 0) {
-      setPullToRefresh(prev => ({ ...prev, startY: e.touches[0].clientY, isPulling: true }));
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (!pullToRefresh.isPulling) return;
-    
-    const currentY = e.touches[0].clientY;
-    const pullDistance = currentY - pullToRefresh.startY;
-    
-    if (pullDistance > 0) {
-      setPullToRefresh(prev => ({ ...prev, currentY: pullDistance }));
-      if (containerRef.current) {
-        containerRef.current.style.transform = `translateY(${Math.min(pullDistance * 0.5, 100)}px)`;
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (!pullToRefresh.isPulling) return;
-    
-    const pullDistance = pullToRefresh.currentY - pullToRefresh.startY;
-    if (pullDistance > 100) {
-      handleRefresh();
-    }
-    
-    if (containerRef.current) {
-      containerRef.current.style.transform = 'translateY(0)';
-    }
-    
-    setPullToRefresh({ startY: 0, currentY: 0, isPulling: false });
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Home</h1>
-          <div className="flex items-center space-x-3">
-            <motion.button
-              onClick={() => navigate('/create')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-            >
-              <FaPlus />
-            </motion.button>
-            <motion.button
-              onClick={handleRefresh}
-              disabled={loading || isRefreshing}
-              whileTap={{ scale: 0.95 }}
-              className={`p-2 rounded-full transition-colors ${
-                loading || isRefreshing
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FaSyncAlt className={`${isRefreshing ? 'animate-spin' : ''}`} />
-            </motion.button>
-          </div>
+          <motion.button
+            onClick={handleRefresh}
+            disabled={loading || isRefreshing}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+              loading || isRefreshing
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-600 hover:bg-gray-100 shadow-sm'
+            }`}
+          >
+            <FaSyncAlt className={`${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="text-sm font-medium">Refresh</span>
+          </motion.button>
         </div>
 
-        <div 
-          ref={containerRef}
-          className="space-y-4"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
+        <div ref={containerRef} className="space-y-4">
           <AnimatePresence mode="wait">
             {loading && posts.length === 0 ? (
               <motion.div
@@ -201,14 +150,6 @@ const HomePage = () => {
                 className="text-center py-12 bg-white rounded-xl shadow-sm"
               >
                 <p className="text-gray-500 mb-4">No posts yet. Be the first to share!</p>
-                <motion.button
-                  onClick={() => navigate('/create')}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Create Post
-                </motion.button>
               </motion.div>
             ) : (
               <PostList
