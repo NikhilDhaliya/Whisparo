@@ -34,10 +34,10 @@ const HomePage = () => {
     { value: 'Fun', label: 'Fun & Entertainment' }
   ];
 
-  const fetchPosts = async (categoryToFetch = selectedCategory, showToast = false) => {
+  const fetchPosts = async (showToast = false) => {
     try {
       setLoading(true);
-      const cacheKey = `home_posts_${categoryToFetch}`;
+      const cacheKey = `home_posts_${selectedCategory}`;
       const cachedPosts = getCacheData(cacheKey);
       if (cachedPosts && !location.state?.refresh && !showToast) {
         setPosts(cachedPosts);
@@ -47,7 +47,7 @@ const HomePage = () => {
 
       const response = await axios.get(`${config.API_URL}/api/posts`, {
         params: {
-          category: categoryToFetch === 'All' ? undefined : categoryToFetch,
+          category: selectedCategory === 'All' ? undefined : selectedCategory,
         },
       });
       const sortedPosts = response.data.posts.map(post => ({
@@ -84,7 +84,7 @@ const HomePage = () => {
     try {
       setIsRefreshing(true);
       setCacheData(`home_posts_${selectedCategory}`, null);
-      await fetchPosts(selectedCategory, true);
+      await fetchPosts(true);
     } catch (error) {
       console.error('Error refreshing posts:', error);
       toast.error('Failed to refresh posts');
@@ -97,8 +97,7 @@ const HomePage = () => {
     const newCategory = e.target.value;
     setSelectedCategory(newCategory);
     setCacheData(`home_posts_${newCategory}`, null);
-    fetchPosts(newCategory);
-    toast.loading(`Fetching ${newCategory === 'All' ? 'all' : newCategory} posts...`);
+    fetchPosts();
   };
 
   const handlePostDeleted = (deletedPostId) => {
