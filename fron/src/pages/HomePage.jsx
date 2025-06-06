@@ -109,85 +109,73 @@ const HomePage = () => {
     setActiveCommentPost(null);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-4 px-2 sm:py-6 sm:px-4 lg:px-8"
-    >
-      <div className="max-w-4xl mx-auto">
-        {/* Header with Refresh and Create Post */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex justify-between items-center mb-4 px-2 sm:px-0"
-        >
-          <h1 className="text-2xl font-bold text-gray-800">AnonBoard</h1>
-          <div className="flex space-x-3">
-            {/* Refresh Button */}
-            <motion.button
-              onClick={handleRefresh}
-              disabled={loading || isRefreshing}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`p-2 rounded-full bg-blue-500 text-white shadow-md transition-all duration-200
-                ${loading || isRefreshing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
-              aria-label="Refresh Posts"
-            >
-              <motion.div animate={{ rotate: isRefreshing ? 360 : 0 }} transition={{ duration: 0.5 }}>
-                <FaSyncAlt className={isRefreshing ? 'animate-spin' : ''} />
+    <div className="min-h-screen bg-gray-100 pt-4 px-2">
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-4 px-2">
+          <h1 className="text-2xl font-bold text-gray-900">Home</h1>
+          <motion.button
+            onClick={handleRefresh}
+            disabled={loading || isRefreshing}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+              loading || isRefreshing
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-600 hover:bg-gray-100 shadow-sm'
+            }`}
+          >
+            <FaSyncAlt className={`${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="text-sm font-medium">Refresh</span>
+          </motion.button>
+        </div>
+
+        <div ref={containerRef} className="space-y-4">
+          <AnimatePresence mode="wait">
+            {error ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-red-500 text-center py-8 bg-red-50 rounded-xl"
+              >
+                {error}
               </motion.div>
-            </motion.button>
-
-            {/* Create Post Button */}
-            <motion.button
-              onClick={() => navigate('/create')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 rounded-full bg-green-500 text-white shadow-md hover:bg-green-600 transition-colors duration-200"
-              aria-label="Create New Post"
-            >
-              <FaPlus />
-            </motion.button>
-          </div>
-        </motion.div>
-
-        {/* Loading Indicator for Pull to Refresh */}
-        <AnimatePresence>
-          {isRefreshing && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex justify-center items-center py-2"
-            >
-              <FaSpinner className="animate-spin text-xl text-blue-600" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Main Content */}
-        {
-          loading && !isRefreshing ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex justify-center items-center h-64"
-            >
-              <FaSpinner className="animate-spin text-4xl text-blue-600" />
-            </motion.div>
-          ) : error ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-red-500 text-center text-xl py-8"
-            >
-              {error}
-            </motion.div>
-          ) : (
-            <PostList posts={posts} />
-          )
-        }
+            ) : posts.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center py-12 bg-white rounded-xl shadow-sm"
+              >
+                <p className="text-center text-gray-500 text-sm">No posts yet. Be the first to share your thoughts!</p>
+                <motion.button
+                  onClick={() => navigate('/create')}
+                  whileTap={{ scale: 0.95 }}
+                  className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg transition-all duration-200 text-sm"
+                >
+                  <FaPlus className="mr-2" /> Create Post
+                </motion.button>
+              </motion.div>
+            ) : (
+              <PostList
+                posts={posts}
+                currentUserEmail={authUser?.email}
+                onPostDeleted={handlePostDeleted}
+                onPostUpdated={handlePostUpdated}
+                onCommentClick={handleCommentClick}
+              />
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Comments Modal */}
