@@ -10,9 +10,6 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import config from '../config';
-import Categories from '../components/home/Categories';
-import CreatePost from '../components/create/CreatePost';
-import { FaPlus, FaSpinner } from 'react-icons/fa';
 
 const HomePage = () => {
   const [posts, setPosts] = useState([]);
@@ -20,7 +17,6 @@ const HomePage = () => {
   const [error, setError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activeCommentPost, setActiveCommentPost] = useState(null);
   const containerRef = useRef(null);
   const { getCacheData, setCacheData } = useCache();
@@ -113,174 +109,78 @@ const HomePage = () => {
   };
 
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-4 px-2 sm:py-6 sm:px-4 lg:px-6"
-    >
-      {/* Loading and Error States */}
-      <AnimatePresence>
-        {loading && !isRefreshing && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex items-center justify-center py-8"
-          >
-            <FaSpinner className="animate-spin text-2xl text-blue-600" />
-          </motion.div>
-        )}
-        {error && !loading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-center text-red-500 text-sm py-8 px-4"
-          >
-            {error}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Pull to Refresh Indicator */}
-      <AnimatePresence>
-        {isRefreshing && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="text-center text-gray-600 text-xs mb-2"
-          >
-            <FaSyncAlt className="inline-block animate-spin mr-1" />
-            Refreshing...
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="max-w-md mx-auto space-y-4">
-        {/* Actions: Create Post and Refresh */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="flex justify-center space-x-2 mb-4"
-        >
-          <motion.button
-            onClick={() => setIsCreateModalOpen(true)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center space-x-1 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md shadow hover:shadow-sm transition-all duration-200 text-xs"
-          >
-            <FaPlus className="text-xs" />
-            <span>Create Post</span>
-          </motion.button>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Home</h1>
           <motion.button
             onClick={handleRefresh}
-            disabled={loading}
+            disabled={loading || isRefreshing}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`flex items-center space-x-1 px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md shadow hover:shadow-sm transition-all duration-200 text-xs ${
-              loading ? 'opacity-50 cursor-not-allowed' : ''
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+              loading || isRefreshing
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-600 hover:bg-gray-100 shadow-sm'
             }`}
           >
-            {loading ? (
-              <FaSpinner className="animate-spin text-xs" />
-            ) : (
-              <>
-                <FaSyncAlt className="text-xs" />
-                <span>Refresh</span>
-              </>
-            )}
+            <FaSyncAlt className={`${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="text-sm font-medium">Refresh</span>
           </motion.button>
-        </motion.div>
+        </div>
 
-        {/* Categories */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <Categories />
-        </motion.div>
-
-        {/* Posts List */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
-          {!loading && !error && posts.length > 0 && (
-            <PostList
-              posts={posts}
-              currentUserEmail={authUser?.email}
-              onPostDeleted={handlePostDeleted}
-              onPostUpdated={handlePostUpdated}
-              onCommentClick={handleCommentClick}
-            />
-          )}
-        </motion.div>
-
-        {/* Empty State */}
-        <AnimatePresence>
-          {!loading && !error && posts.length === 0 && !isRefreshing && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center py-8 px-4"
-            >
-              <p className="text-sm text-gray-500 mb-3">No posts found. Be the first to share!</p>
-              <motion.button
-                onClick={() => setIsCreateModalOpen(true)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="inline-flex items-center px-3 py-1.5 rounded-md bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-sm transition-all duration-200 text-xs"
+        <div ref={containerRef} className="space-y-4">
+          <AnimatePresence mode="wait">
+            {loading && posts.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center justify-center py-12"
               >
-                Create a Post
-              </motion.button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              </motion.div>
+            ) : error ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-red-500 text-center py-8 bg-red-50 rounded-xl"
+              >
+                {error}
+              </motion.div>
+            ) : posts.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center py-12 bg-white rounded-xl shadow-sm"
+              >
+                <p className="text-gray-500 mb-4">No posts yet. Be the first to share!</p>
+              </motion.div>
+            ) : (
+              <PostList
+                posts={posts}
+                currentUserEmail={authUser?.email}
+                onPostDeleted={handlePostDeleted}
+                onPostUpdated={handlePostUpdated}
+                onCommentClick={handleCommentClick}
+              />
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* Create Post Modal */}
-      <AnimatePresence>
-        {isCreateModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50 }}
-              className="bg-white rounded-lg overflow-hidden w-full max-w-sm"
-            >
-              <CreatePost onClose={() => setIsCreateModalOpen(false)} onPostCreated={handlePostUpdated} />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Comment Modal */}
+      {/* Comments Modal */}
       <AnimatePresence>
         {activeCommentPost && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: '100%' }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: '100%' }}
-              transition={{ type: 'spring', stiffness: 100, damping: 25 }}
-              className="bg-white rounded-t-lg overflow-hidden w-full max-w-sm h-full max-h-[80vh] flex flex-col"
-            >
-              <CommentList postId={activeCommentPost._id} isOpen={true} onClose={handleCommentClose} />
-            </motion.div>
-          </motion.div>
+          <div className="mt-4">
+            <CommentList 
+              postId={activeCommentPost} 
+              isOpen={true}
+              onClose={handleCommentClose}
+            />
+          </div>
         )}
       </AnimatePresence>
     </div>

@@ -226,13 +226,13 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
         >
-          <FaSpinner className="animate-spin text-3xl text-blue-600" />
+          <FaSpinner className="animate-spin text-4xl text-blue-600" />
         </motion.div>
       </div>
     );
@@ -240,11 +240,11 @@ const ProfilePage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-red-500 text-base bg-white p-6 rounded-lg shadow-lg text-center"
+          className="text-red-500 text-xl bg-white p-8 rounded-2xl shadow-lg"
         >
           {error}
         </motion.div>
@@ -255,26 +255,26 @@ const ProfilePage = () => {
   
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-4 px-2 sm:py-6 sm:px-4 lg:px-6">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto space-y-8">
         {/* Profile Header */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="bg-white shadow-md rounded-lg p-4 sm:p-6"
+          transition={{ duration: 0.5 }}
+          className="bg-white shadow-xl rounded-2xl p-6 sm:p-8"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-            <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div className="flex items-center space-x-4">
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold shadow-lg"
               >
                 {authUser?.email?.charAt(0).toUpperCase()}
               </motion.div>
               <div>
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">{authUser?.username || 'Anonymous'}</h1>
-                <p className="text-xs sm:text-sm text-gray-500 break-all">{authUser?.email}</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{authUser?.username || 'Anonymous'}</h1>
+                <p className="text-sm sm:text-base text-gray-500 break-all">{authUser?.email}</p>
               </div>
             </div>
             <motion.button
@@ -282,17 +282,17 @@ const ProfilePage = () => {
               disabled={isLoggingOut}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`flex items-center justify-center space-x-1 px-4 py-2 rounded-lg text-white font-medium text-sm transition-all duration-200 w-full sm:w-auto ${
+              className={`flex items-center justify-center space-x-2 px-6 py-3 rounded-xl text-white font-medium transition-all duration-200 w-full sm:w-auto ${
                 isLoggingOut
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-red-500 to-red-600 hover:shadow'
+                  : 'bg-gradient-to-r from-red-500 to-red-600 hover:shadow-lg'
               }`}
             >
               {isLoggingOut ? (
-                <FaSpinner className="animate-spin text-sm" />
+                <FaSpinner className="animate-spin" />
               ) : (
                 <>
-                  <FaSignOutAlt className="text-sm" />
+                  <FaSignOutAlt />
                   <span>Logout</span>
                 </>
               )}
@@ -302,29 +302,29 @@ const ProfilePage = () => {
 
         {/* Posts Section */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="bg-white shadow-md rounded-lg overflow-hidden"
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="bg-white shadow-xl rounded-2xl overflow-hidden"
         >
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900">Your Posts</h2>
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-900">Your Posts</h2>
           </div>
 
-          <div className="p-4">
-            <div className="space-y-4">
+          <div className="p-6">
+            <div className="space-y-6">
               {userPosts.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-center py-8"
+                  className="text-center py-12"
                 >
-                  <p className="text-sm sm:text-base text-gray-500">No posts yet</p>
+                  <p className="text-base sm:text-lg text-gray-500">No posts yet</p>
                   <motion.button
                     onClick={() => navigate('/create')}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="mt-3 inline-flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow transition-all duration-200 text-sm"
+                    className="mt-4 inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg transition-all duration-200 text-sm sm:text-base"
                   >
                     Create Your First Post
                   </motion.button>
@@ -333,29 +333,29 @@ const ProfilePage = () => {
                 userPosts.map((post) => (
                   <motion.div
                     key={post.id}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-all duration-200"
+                    className="bg-white border border-gray-100 rounded-xl p-6 hover:shadow-lg transition-all duration-200"
                   >
-                    <div className="flex flex-col space-y-3">
+                    <div className="flex flex-col space-y-4">
                       {editingPostId === post.id ? (
                         <motion.div
-                          initial={{ opacity: 0, y: 5 }}
+                          initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="space-y-3"
+                          className="space-y-4"
                         >
                           <textarea
                             value={editingPostContent}
                             onChange={(e) => setEditingPostContent(e.target.value)}
-                            className="w-full p-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none text-sm"
-                            rows="3"
+                            className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                            rows="4"
                           />
-                          <div className="flex justify-end space-x-2">
+                          <div className="flex justify-end space-x-3">
                             <motion.button
                               onClick={handleCancelEdit}
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors text-sm"
+                              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                             >
                               <FaTimes />
                             </motion.button>
@@ -364,25 +364,25 @@ const ProfilePage = () => {
                               disabled={isSavingPost}
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                              className={`p-2 text-white rounded-md transition-colors text-sm ${
+                              className={`px-4 py-2 text-white rounded-lg transition-colors ${
                                 isSavingPost ? 'bg-blue-400' : 'bg-blue-500 hover:bg-blue-600'
                               }`}
                             >
-                              {isSavingPost ? <FaSpinner className="animate-spin text-sm" /> : <FaSave />}
+                              {isSavingPost ? <FaSpinner className="animate-spin" /> : <FaSave />}
                             </motion.button>
                           </div>
                         </motion.div>
                       ) : (
                         <>
-                          <div className="space-y-1">
+                          <div className="space-y-2">
                             <p className="text-gray-800 text-sm break-words">{post.body}</p>
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                              <span className="flex items-center space-x-0.5">
-                                <FaThumbsUp className="text-xs" />
+                            <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-500">
+                              <span className="flex items-center space-x-1">
+                                <FaThumbsUp />
                                 <span>{post.likes || 0}</span>
                               </span>
-                              <span className="flex items-center space-x-0.5">
-                                <FaComment className="text-xs" />
+                              <span className="flex items-center space-x-1">
+                                <FaComment />
                                 <span>{post.commentsCount || 0}</span>
                               </span>
                               <span>
@@ -391,14 +391,14 @@ const ProfilePage = () => {
                             </div>
                           </div>
                           
-                          <div className="flex items-center justify-end space-x-1">
+                          <div className="flex items-center justify-end space-x-2">
                             {editingPostId === post.id ? (
                               <>
                                 <motion.button
                                   onClick={handleCancelEdit}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors text-sm"
+                                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                                 >
                                   <FaTimes />
                                 </motion.button>
@@ -407,11 +407,11 @@ const ProfilePage = () => {
                                   disabled={isSavingPost}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className={`p-2 text-white rounded-md transition-colors text-sm ${
+                                  className={`p-2 text-white rounded-lg transition-colors ${
                                     isSavingPost ? 'bg-blue-400' : 'bg-blue-500 hover:bg-blue-600'
                                   }`}
                                 >
-                                  {isSavingPost ? <FaSpinner className="animate-spin text-sm" /> : <FaSave />}
+                                  {isSavingPost ? <FaSpinner className="animate-spin" /> : <FaSave />}
                                 </motion.button>
                               </>
                             ) : (
@@ -420,7 +420,7 @@ const ProfilePage = () => {
                                   onClick={() => handleEditPost(post)}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className="p-2 rounded-md text-gray-600 hover:bg-gray-100 text-sm"
+                                  className="p-2 rounded-lg text-gray-600 hover:bg-gray-100"
                                 >
                                   <FaEdit />
                                 </motion.button>
@@ -429,7 +429,7 @@ const ProfilePage = () => {
                                   disabled={isDeletingPost}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className={`p-2 rounded-md text-gray-600 hover:bg-red-100 hover:text-red-600 text-sm ${
+                                  className={`p-2 rounded-lg text-gray-600 hover:bg-red-100 hover:text-red-600 ${
                                     isDeletingPost ? 'opacity-50 cursor-not-allowed' : ''
                                   }`}
                                 >
@@ -442,20 +442,20 @@ const ProfilePage = () => {
                       )}
 
                       {/* Comments Section */}
-                      <div className="mt-3">
+                      <div className="mt-4">
                         <motion.button
                           onClick={() => toggleComments(post.id)}
                           whileHover={{ scale: 1.02 }}
-                          className="flex items-center space-x-1 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                          className="flex items-center space-x-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
                         >
                           {expandedPostId === post.id ? (
                             <>
-                              <FaChevronUp className="text-xs" />
+                              <FaChevronUp />
                               <span>Hide Comments</span>
                             </>
                           ) : (
                             <>
-                              <FaChevronDown className="text-xs" />
+                              <FaChevronDown />
                               <span>Show Comments</span>
                             </>
                           )}
@@ -468,7 +468,7 @@ const ProfilePage = () => {
                               animate={{ opacity: 1, height: 'auto' }}
                               exit={{ opacity: 0, height: 0 }}
                               transition={{ duration: 0.2 }}
-                              className="mt-3"
+                              className="mt-4"
                             >
                               <CommentList 
                                 postId={post.id} 
@@ -489,52 +489,52 @@ const ProfilePage = () => {
 
         {/* Comments Section */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="bg-white shadow-md rounded-lg overflow-hidden"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="bg-white shadow-xl rounded-2xl overflow-hidden"
         >
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900">Your Comments</h2>
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-900">Your Comments</h2>
           </div>
 
-          <div className="p-4">
-            <div className="space-y-3">
+          <div className="p-6">
+            <div className="space-y-4">
               {userComments.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-center py-8"
+                  className="text-center py-12"
                 >
-                  <p className="text-sm text-gray-500">No comments yet</p>
+                  <p className="text-base text-gray-500">No comments yet</p>
                 </motion.div>
               ) : (
                 userComments.map((comment) => (
                   <motion.div
                     key={comment._id}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-all duration-200"
+                    className="bg-white border border-gray-100 rounded-xl p-6 hover:shadow-lg transition-all duration-200"
                   >
-                    <div className="flex flex-col space-y-3">
+                    <div className="flex flex-col space-y-4">
                       {editingCommentId === comment._id ? (
                         <motion.div
-                          initial={{ opacity: 0, y: 5 }}
+                          initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="space-y-3"
+                          className="space-y-4"
                         >
                           <textarea
                             value={editingCommentContent}
                             onChange={(e) => setEditingCommentContent(e.target.value)}
-                            className="w-full p-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none text-sm"
-                            rows="2"
+                            className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                            rows="3"
                           />
-                          <div className="flex justify-end space-x-2">
+                          <div className="flex justify-end space-x-3">
                             <motion.button
                               onClick={handleCancelEdit}
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors text-sm"
+                              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                             >
                               <FaTimes />
                             </motion.button>
@@ -543,13 +543,13 @@ const ProfilePage = () => {
                               disabled={!editingCommentContent.trim() || isSavingComment}
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                              className={`px-4 py-2 text-white rounded-md transition-colors text-sm ${
+                              className={`px-4 py-2 text-white rounded-lg transition-colors ${
                                 !editingCommentContent.trim() || isSavingComment
                                   ? 'bg-blue-400'
                                   : 'bg-blue-500 hover:bg-blue-600'
                               }`}
                             >
-                              {isSavingComment ? <FaSpinner className="animate-spin text-sm" /> : <FaSave />}
+                              {isSavingComment ? <FaSpinner className="animate-spin" /> : <FaSave />}
                             </motion.button>
                           </div>
                         </motion.div>
@@ -562,7 +562,7 @@ const ProfilePage = () => {
                               <motion.button
                                 onClick={() => navigate(`/post/${comment.postId}`)}
                                 whileHover={{ scale: 1.02 }}
-                                className="text-blue-600 hover:text-blue-700 hover:underline text-xs"
+                                className="text-blue-600 hover:text-blue-700 hover:underline"
                               >
                                 {comment.postTitle}
                               </motion.button>
@@ -572,14 +572,14 @@ const ProfilePage = () => {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-end space-x-1">
+                          <div className="flex items-center justify-end space-x-2">
                             {editingCommentId === comment._id ? (
                               <>
                                 <motion.button
                                   onClick={handleCancelEdit}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors text-sm"
+                                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                                 >
                                   <FaTimes />
                                 </motion.button>
@@ -588,13 +588,13 @@ const ProfilePage = () => {
                                   disabled={!editingCommentContent.trim() || isSavingComment}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className={`px-4 py-2 text-white rounded-md transition-colors text-sm ${
+                                  className={`px-4 py-2 text-white rounded-lg transition-colors ${
                                     !editingCommentContent.trim() || isSavingComment
                                       ? 'bg-blue-400'
                                       : 'bg-blue-500 hover:bg-blue-600'
                                   }`}
                                 >
-                                  {isSavingComment ? <FaSpinner className="animate-spin text-sm" /> : <FaSave />}
+                                  {isSavingComment ? <FaSpinner className="animate-spin" /> : <FaSave />}
                                 </motion.button>
                               </>
                             ) : (
@@ -603,7 +603,7 @@ const ProfilePage = () => {
                                   onClick={() => handleEditComment(comment)}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className="p-2 rounded-md text-gray-600 hover:bg-gray-100 text-sm"
+                                  className="p-2 rounded-lg text-gray-600 hover:bg-gray-100"
                                 >
                                   <FaEdit />
                                 </motion.button>
@@ -612,7 +612,7 @@ const ProfilePage = () => {
                                   disabled={isDeletingComment}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className={`p-2 rounded-md text-gray-600 hover:bg-red-100 hover:text-red-600 text-sm ${
+                                  className={`p-2 rounded-lg text-gray-600 hover:bg-red-100 hover:text-red-600 ${
                                     isDeletingComment ? 'opacity-50 cursor-not-allowed' : ''
                                   }`}
                                 >
