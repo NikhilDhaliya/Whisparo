@@ -5,6 +5,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { FaImage, FaPaperPlane, FaSpinner, FaTimes, FaChevronLeft } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import CategoriesModal from '../components/create/CategoriesModal';
 
 const MAX_CHARACTERS = 500;
 
@@ -17,6 +18,7 @@ const CreatePost = () => {
   const [loading, setLoading] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const fileInputRef = useRef(null);
+  const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -108,6 +110,11 @@ const CreatePost = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCategorySelect = (category) => {
+    setCategory(category);
+    setShowCategoryPicker(false);
   };
 
   return (
@@ -232,46 +239,12 @@ const CreatePost = () => {
       {/* iOS-style Category Picker Modal */}
       <AnimatePresence>
         {showCategoryPicker && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-            onClick={() => setShowCategoryPicker(false)}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[80vh] overflow-hidden"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="p-4 border-b border-gray-200">
-                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-center">Select Category</h3>
-              </div>
-              <div className="p-4 space-y-2">
-                {categories.map((cat) => (
-                  <motion.button
-                    key={cat.value}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      setCategory(cat.value);
-                      setShowCategoryPicker(false);
-                    }}
-                    className={`w-full px-4 py-3 text-left rounded-xl transition-colors ${
-                      category === cat.value
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    {cat.label}
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
+          <CategoriesModal
+            isOpen={showCategoryPicker}
+            onClose={() => setShowCategoryPicker(false)}
+            onSelectCategory={handleCategorySelect}
+            categories={categories}
+          />
         )}
       </AnimatePresence>
     </div>
