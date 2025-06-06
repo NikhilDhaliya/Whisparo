@@ -1,28 +1,9 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Create reusable transporter object using SMTP transport
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS.replace(/\s+/g, '') // Remove any spaces from the password
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
-
-// Verify transporter configuration
-transporter.verify(function(error, success) {
-  if (error) {
-    console.error('SMTP configuration error:', error);
-  } else {
-    console.log('SMTP server is ready to take our messages');
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email template for OTP
 const createOTPEmailTemplate = (otp) => {
@@ -81,16 +62,21 @@ const createWelcomeEmailTemplate = (name) => {
 // Function to send OTP email
 export const sendOTPEmail = async (email, otp) => {
   try {
-    const mailOptions = {
-      from: `"SkillSprint" <${process.env.SMTP_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: 'SkillSprint <onboarding@resend.dev>',
       to: email,
       subject: 'Your SkillSprint Verification Code',
       html: createOTPEmailTemplate(otp)
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
+    if (error) {
+      console.error('Error sending OTP email:', error);
+      throw new Error('Failed to send verification email');
+    }
+
     return true;
   } catch (error) {
+    console.error('Error in sendOTPEmail:', error);
     throw new Error('Failed to send verification email');
   }
 };
@@ -98,16 +84,21 @@ export const sendOTPEmail = async (email, otp) => {
 // Function to send welcome email
 export const sendWelcomeEmail = async (email, name) => {
   try {
-    const mailOptions = {
-      from: `"SkillSprint" <${process.env.SMTP_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: 'SkillSprint <onboarding@resend.dev>',
       to: email,
       subject: 'Welcome to SkillSprint!',
       html: createWelcomeEmailTemplate(name)
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
+    if (error) {
+      console.error('Error sending welcome email:', error);
+      throw new Error('Failed to send welcome email');
+    }
+
     return true;
   } catch (error) {
+    console.error('Error in sendWelcomeEmail:', error);
     throw new Error('Failed to send welcome email');
   }
 };
@@ -115,7 +106,19 @@ export const sendWelcomeEmail = async (email, name) => {
 // Function to verify email configuration
 export const verifyEmailConfig = async () => {
   try {
-    await transporter.verify();
+    // Resend doesn't have a direct verify method, but we can test by sending a test email
+    const { error } = await resend.emails.send({
+      from: 'SkillSprint <onboarding@resend.dev>',
+      to: 'test@example.com',
+      subject: 'Test Email',
+      html: '<p>This is a test email</p>'
+    });
+
+    if (error) {
+      console.error('Email configuration error:', error);
+      return false;
+    }
+
     return true;
   } catch (error) {
     console.error('Email configuration error:', error);
