@@ -5,13 +5,12 @@ dotenv.config();
 
 // Create reusable transporter object using SMTP transport
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: process.env.SMTP_SECURE === 'true',
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS.replace(/\s+/g, '') // Remove any spaces from the password
-  },
-  tls: {
-    rejectUnauthorized: false
+    pass: process.env.SMTP_PASS
   }
 });
 
@@ -78,7 +77,6 @@ const createWelcomeEmailTemplate = (name) => {
   `;
 };
 
-// Function to send OTP email
 export const sendOTPEmail = async (email, otp) => {
   try {
     const mailOptions = {
@@ -88,9 +86,11 @@ export const sendOTPEmail = async (email, otp) => {
       html: createOTPEmailTemplate(otp)
     };
 
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully:', info.messageId);
     return true;
   } catch (error) {
+    console.error('Error sending email:', error);
     throw new Error('Failed to send verification email');
   }
 };
@@ -105,9 +105,11 @@ export const sendWelcomeEmail = async (email, name) => {
       html: createWelcomeEmailTemplate(name)
     };
 
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Welcome email sent:', info.messageId);
     return true;
   } catch (error) {
+    console.error('Error sending welcome email:', error);
     throw new Error('Failed to send welcome email');
   }
 };
@@ -116,6 +118,7 @@ export const sendWelcomeEmail = async (email, name) => {
 export const verifyEmailConfig = async () => {
   try {
     await transporter.verify();
+    console.log('Email configuration is valid');
     return true;
   } catch (error) {
     console.error('Email configuration error:', error);
