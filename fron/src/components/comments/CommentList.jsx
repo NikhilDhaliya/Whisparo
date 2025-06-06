@@ -53,7 +53,8 @@ const Comment = ({ comment, postId, onCommentAdded, currentUserEmail }) => {
 
   const isOwnedByUser = currentUserEmail && comment.authorEmail === currentUserEmail;
   const hasReplies = comment.replies && comment.replies.length > 0;
-  const repliesToDisplay = showReplies ? comment.replies : (comment.replies?.slice(0, initialRepliesToShow) || []);
+  const sortedReplies = comment.replies ? [...comment.replies].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)) : [];
+  const repliesToDisplay = showReplies ? sortedReplies : (sortedReplies.slice(0, initialRepliesToShow) || []);
   const remainingRepliesCount = hasReplies ? comment.replies.length - repliesToDisplay.length : 0;
 
   return (
@@ -373,7 +374,7 @@ const CommentList = ({ postId, isOpen, onClose, onCommentCountUpdate }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-end"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
           onClick={onClose}
         >
           <motion.div
@@ -381,54 +382,74 @@ const CommentList = ({ postId, isOpen, onClose, onCommentCountUpdate }) => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-            className="relative bg-white w-full max-w-md h-full max-h-[80vh] rounded-t-2xl overflow-hidden flex flex-col"
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[80vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold">Comments</h2>
-              <button onClick={onClose} className="text-gray-600 hover:text-gray-800">
-                <FaTimes size={18} />
-              </button>
+            <div className="p-4 border-b border-gray-200">
+              <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-center">Comments</h3>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4" id="comment-list-area">
-              {loading && comments.length === 0 && <p className="text-center text-gray-500">Loading comments...</p>}
-              {error && <p className="text-center text-red-500">{error}</p>}
-              {comments.length === 0 && !loading && !error && <p className="text-center text-gray-500">No comments yet.</p>}
-              
-              {comments.map(comment => (
-                <Comment 
-                  key={comment._id} 
-                  comment={comment}
-                  postId={postId}
-                  onCommentAdded={handleCommentAdded}
-                  currentUserEmail={currentUserEmail}
-                />
-              ))}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 overscroll-contain">
+              {loading && comments.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : error ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-center py-4 bg-red-50 rounded-xl"
+                >
+                  {error}
+                </motion.div>
+              ) : (
+                <>
+                  <div className="sticky top-0 z-10 bg-gray-50 pb-4">
+                    <CommentForm 
+                      postId={postId} 
+                      onCommentAdded={(newComment) => {
+                         handleCommentAdded(newComment);
+                      }}
+                    />
+                  </div>
+                  <div className="mt-6 space-y-4">
+                    {comments.length === 0 ? (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center py-8 text-gray-500"
+                      >
+                        No comments yet. Be the first to comment!
+                      </motion.div>
+                    ) : (
+                      comments.map((comment) => (
+                        <Comment 
+                          key={comment._id} 
+                          comment={comment}
+                          postId={postId}
+                          onCommentAdded={handleCommentAdded}
+                          currentUserEmail={currentUserEmail}
+                        />
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
 
               {!loading && hasMore && (
-                <div className="flex justify-center mt-4">
-                  <button 
-                    onClick={handleLoadMore} 
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Load More
-                  </button>
-                </div>
+                <motion.button
+                  onClick={handleLoadMore} 
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full mt-4 py-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                >
+                  Load More
+                </motion.button>
               )}
-            </div>
-
-            <div className="p-4 border-t border-gray-200">
-              <CommentForm 
-                postId={postId} 
-                onCommentAdded={(newComment) => { 
-                   handleCommentAdded(newComment);
-                }}
-              />
             </div>
           </motion.div>
         </motion.div>
