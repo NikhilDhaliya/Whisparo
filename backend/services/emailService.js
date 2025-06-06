@@ -63,7 +63,7 @@ const createWelcomeEmailTemplate = (name) => {
 export const sendOTPEmail = async (email, otp) => {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'SkillSprint <onboarding@resend.dev>',
+      from: 'skillsprint47@gmail.com',
       to: email,
       subject: 'Your SkillSprint Verification Code',
       html: createOTPEmailTemplate(otp)
@@ -85,7 +85,7 @@ export const sendOTPEmail = async (email, otp) => {
 export const sendWelcomeEmail = async (email, name) => {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'SkillSprint <onboarding@resend.dev>',
+      from: 'skillsprint47@gmail.com',
       to: email,
       subject: 'Welcome to SkillSprint!',
       html: createWelcomeEmailTemplate(name)
@@ -108,8 +108,8 @@ export const verifyEmailConfig = async () => {
   try {
     // Resend doesn't have a direct verify method, but we can test by sending a test email
     const { error } = await resend.emails.send({
-      from: 'SkillSprint <onboarding@resend.dev>',
-      to: 'test@example.com',
+      from: 'skillsprint47@gmail.com',
+      to: 'skillsprint47@gmail.com',
       subject: 'Test Email',
       html: '<p>This is a test email</p>'
     });
