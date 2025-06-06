@@ -36,8 +36,13 @@ const CreatePost = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!content.trim() || !category) {
-      toast.error('Please fill in all required fields');
+    if (!content.trim()) {
+      toast.error('Please write something in your post');
+      return;
+    }
+    if (!category) {
+      toast.error('Please select a category for your post');
+      setShowCategoryPicker(true); // Automatically open category picker
       return;
     }
 
@@ -167,12 +172,19 @@ const CreatePost = () => {
               whileTap={{ scale: 0.95 }}
               type="button"
               onClick={() => setShowCategoryPicker(true)}
-              className="w-full px-4 py-2 text-left text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+              className={`w-full px-4 py-2 text-left rounded-xl transition-colors ${
+                !category 
+                  ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' 
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+              }`}
             >
               {category ? (
                 <span className="font-medium text-gray-900">{categories.find(c => c.value === category)?.label}</span>
               ) : (
-                <span>Select a category</span>
+                <span className="flex items-center gap-2">
+                  <span>Select a category</span>
+                  <span className="text-red-500 text-sm">(Required)</span>
+                </span>
               )}
             </motion.button>
           </div>
