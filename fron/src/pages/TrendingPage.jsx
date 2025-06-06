@@ -13,7 +13,7 @@ const TrendingPage = () => {
   useEffect(() => {
     const fetchTrendingPosts = async () => {
       try {
-        const response = await axios.get(`${config.API_URL}/posts/trending`);
+        const response = await axios.get(`${config.API_URL}/api/posts/trending`);
         setTrendingPosts(response.data);
         setLoading(false);
       } catch (err) {
