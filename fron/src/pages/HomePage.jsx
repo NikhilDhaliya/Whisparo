@@ -36,12 +36,14 @@ const HomePage = () => {
 
   const fetchPosts = async (showToast = false) => {
     try {
+      console.log('Fetching posts with category:', selectedCategory);
       setLoading(true);
       const cacheKey = `home_posts_${selectedCategory}`;
       const cachedPosts = getCacheData(cacheKey);
       if (cachedPosts && !location.state?.refresh && !showToast) {
         setPosts(cachedPosts);
         setLoading(false);
+        console.log('Loaded from cache for category:', selectedCategory);
         return;
       }
 
@@ -95,6 +97,7 @@ const HomePage = () => {
 
   const handleCategoryChange = (e) => {
     const newCategory = e.target.value;
+    console.log('Category selected:', newCategory);
     setSelectedCategory(newCategory);
     setCacheData(`home_posts_${newCategory}`, null);
     fetchPosts();
