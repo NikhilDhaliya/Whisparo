@@ -44,11 +44,12 @@ const Signup = () => {
       
       if (!showOTPInput) {
         // Step 1: Request OTP
-        await axios.post('/api/otp/generate', {
+        const response = await axios.post('/api/otp/generate', {
           email: formData.email
         });
         setShowOTPInput(true);
-        toast.success('Verification code sent to your email!');
+        // Show OTP in development
+        toast.success(`Verification code: ${response.data.otp}`);
       } else {
         // Step 2: Verify OTP
         const verifyResponse = await axios.post('/api/otp/verify', {

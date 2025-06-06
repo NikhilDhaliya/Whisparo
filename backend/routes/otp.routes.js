@@ -16,13 +16,27 @@ router.post('/generate', async (req, res) => {
     // Create new OTP
     const { otpDoc, otp } = await OTP.createOTP(email);
 
-    // Send OTP via email
-    await sendOTPEmail(email, otp);
-
+    // For development/testing: Return OTP in response
+    // TODO: Remove this in production and uncomment the email sending code
     res.status(200).json({
-      message: 'OTP sent successfully',
+      message: 'OTP generated successfully',
+      otp, // Remove this in production
       expiresIn: 10 * 60 // 10 minutes in seconds
     });
+
+    // Uncomment this in production after setting up email service
+    // try {
+    //   await sendOTPEmail(email, otp);
+    //   res.status(200).json({
+    //     message: 'OTP sent successfully',
+    //     expiresIn: 10 * 60 // 10 minutes in seconds
+    //   });
+    // } catch (emailError) {
+    //   console.error('Error sending email:', emailError);
+    //   // Delete the OTP if email sending fails
+    //   await OTP.deleteOne({ _id: otpDoc._id });
+    //   throw new Error('Failed to send OTP email');
+    // }
   } catch (error) {
     console.error('Error generating OTP:', error);
     res.status(500).json({ message: 'Failed to generate OTP' });
@@ -66,13 +80,27 @@ router.post('/resend', async (req, res) => {
     // Create new OTP
     const { otpDoc, otp } = await OTP.createOTP(email);
 
-    // Send OTP via email
-    await sendOTPEmail(email, otp);
-
+    // For development/testing: Return OTP in response
+    // TODO: Remove this in production and uncomment the email sending code
     res.status(200).json({
       message: 'OTP resent successfully',
+      otp, // Remove this in production
       expiresIn: 10 * 60 // 10 minutes in seconds
     });
+
+    // Uncomment this in production after setting up email service
+    // try {
+    //   await sendOTPEmail(email, otp);
+    //   res.status(200).json({
+    //     message: 'OTP resent successfully',
+    //     expiresIn: 10 * 60 // 10 minutes in seconds
+    //   });
+    // } catch (emailError) {
+    //   console.error('Error sending email:', emailError);
+    //   // Delete the OTP if email sending fails
+    //   await OTP.deleteOne({ _id: otpDoc._id });
+    //   throw new Error('Failed to resend OTP email');
+    // }
   } catch (error) {
     console.error('Error resending OTP:', error);
     res.status(500).json({ message: 'Failed to resend OTP' });
