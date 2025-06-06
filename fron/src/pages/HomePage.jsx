@@ -22,20 +22,34 @@ const HomePage = () => {
   const { getCacheData, setCacheData } = useCache();
   const location = useLocation();
   const { user: authUser } = useAuth();
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
+  const categories = [
+    { value: 'All', label: 'All Categories' },
+    { value: 'General', label: 'General Discussion' },
+    { value: 'Question', label: 'Question' },
+    { value: 'Discussion', label: 'Discussion' },
+    { value: 'News', label: 'News' },
+    { value: 'Tech', label: 'Technology' },
+    { value: 'Fun', label: 'Fun & Entertainment' }
+  ];
 
   const fetchPosts = async (showToast = false) => {
     try {
       setLoading(true);
-      // Check cache first
-      const cachedPosts = getCacheData('home_posts');
+      const cacheKey = `home_posts_${selectedCategory}`;
+      const cachedPosts = getCacheData(cacheKey);
       if (cachedPosts && !location.state?.refresh && !showToast) {
         setPosts(cachedPosts);
         setLoading(false);
         return;
       }
 
-      const response = await axios.get(`${config.API_URL}/api/posts`);
-      // Sort posts by creation date, newest first
+      const response = await axios.get(`${config.API_URL}/api/posts`, {
+        params: {
+          category: selectedCategory === 'All' ? undefined : selectedCategory,
+        },
+      });
       const sortedPosts = response.data.posts.map(post => ({
         ...post,
         username: post.authorEmail === authUser?.email ? authUser?.username : (post.newUsername || post.authorUsername || 'Anonymous')
@@ -43,8 +57,7 @@ const HomePage = () => {
         new Date(b.createdAt) - new Date(a.createdAt)
       );
       setPosts(sortedPosts);
-      // Cache the posts
-      setCacheData('home_posts', sortedPosts);
+      setCacheData(cacheKey, sortedPosts);
       setError(null);
       if (showToast) {
         toast.success('Posts refreshed');
@@ -60,11 +73,10 @@ const HomePage = () => {
 
   useEffect(() => {
     fetchPosts();
-    // Clear the refresh state after handling it
     if (location.state?.refresh) {
       window.history.replaceState({}, document.title);
     }
-  }, [refreshTrigger, location.state?.refresh, authUser]);
+  }, [refreshTrigger, location.state?.refresh, authUser, selectedCategory]);
 
   const handleRefresh = async () => {
     if (loading || isRefreshing) return;
@@ -83,7 +95,6 @@ const HomePage = () => {
   const handlePostDeleted = (deletedPostId) => {
     setPosts(prevPosts => {
       const newPosts = prevPosts.filter(post => post.id !== deletedPostId);
-      // Update cache
       setCacheData('home_posts', newPosts);
       return newPosts;
     });
@@ -94,7 +105,6 @@ const HomePage = () => {
       const newPosts = prevPosts.map(post => 
         post.id === updatedPost._id ? { ...post, content: updatedPost.body } : post
       );
-      // Update cache
       setCacheData('home_posts', newPosts);
       return newPosts;
     });
@@ -125,8 +135,26 @@ const HomePage = () => {
             }`}
           >
             <FaSyncAlt className={`${isRefreshing ? 'animate-spin' : ''}`} />
-            <span className="text-sm font-medium">Refresh</span>
           </motion.button>
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="category-filter" className="block text-sm font-medium text-gray-700 mb-2">
+            Filter by Category
+          </label>
+          <select
+            id="category-filter"
+            name="category-filter"
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          >
+            {categories.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div ref={containerRef} className="space-y-4">
