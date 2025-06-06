@@ -9,6 +9,7 @@ import { useCache } from '../context/CacheContext';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import config from '../config';
 
 const HomePage = () => {
   const [posts, setPosts] = useState([]);
@@ -27,13 +28,13 @@ const HomePage = () => {
       setLoading(true);
       // Check cache first
       const cachedPosts = getCacheData('home_posts');
-      if (cachedPosts && !location.state?.refresh) {
+      if (cachedPosts && !location.state?.refresh && !showToast) {
         setPosts(cachedPosts);
         setLoading(false);
         return;
       }
 
-      const response = await axios.get('/api/posts');
+      const response = await axios.get(`${config.API_URL}/api/posts`);
       // Sort posts by creation date, newest first
       const sortedPosts = response.data.posts.map(post => ({
         ...post,
@@ -49,6 +50,7 @@ const HomePage = () => {
         toast.success('Posts refreshed');
       }
     } catch (err) {
+      console.error('Error fetching posts:', err);
       setError('Failed to load posts.');
       toast.error('Failed to load posts');
     } finally {
@@ -67,10 +69,15 @@ const HomePage = () => {
   const handleRefresh = async () => {
     if (loading || isRefreshing) return;
     
-    setIsRefreshing(true);
-    await fetchPosts(true);
-    setIsRefreshing(false);
-    setRefreshTrigger(prev => prev + 1);
+    try {
+      setIsRefreshing(true);
+      await fetchPosts(true);
+    } catch (error) {
+      console.error('Error refreshing posts:', error);
+      toast.error('Failed to refresh posts');
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handlePostDeleted = (deletedPostId) => {
