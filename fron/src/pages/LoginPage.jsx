@@ -21,7 +21,19 @@ const LoginPage = () => {
       toast.success('Logged in successfully');
       navigate('/');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to login');
+      const errorMessage = error.response?.data?.message || 'Failed to login';
+      toast.error(errorMessage);
+      
+      // If user is not verified, show a more helpful message
+      if (errorMessage.includes('verify your email')) {
+        toast.error('Please complete email verification before logging in', {
+          duration: 5000,
+          action: {
+            label: 'Sign Up',
+            onClick: () => navigate('/signup')
+          }
+        });
+      }
     } finally {
       setLoading(false);
     }
